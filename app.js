@@ -10,16 +10,18 @@ const MongoStore = require('connect-mongo')(session);
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
 var testRouter = require('./routes/test');
+var apiRouter = require('./routes/api');
+var authClientExampleRouter = require('./routes/auth_client_example');
 
 var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+app.set('view engine', 'hbs');
 
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
@@ -34,14 +36,16 @@ app.use(session({
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/test', testRouter);
+app.use('/api', apiRouter);
+app.use('/example/auth', authClientExampleRouter);
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};

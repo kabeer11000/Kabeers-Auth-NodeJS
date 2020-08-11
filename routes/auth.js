@@ -19,7 +19,9 @@ function makeid(length) {
 
 
 router.get('/:app_id/:callback/:grant_type/:remote_app_id', function (req, res, next) {
-  if (!req.params.app_id||!req.params.callback)
+  if (!req.params.app_id||!req.params.callback||!req.params.grant_type||!req.params.remote_app_id){
+
+  }
     const
         app_id = decodeURIComponent(req.params.app_id),
         grant_type = decodeURIComponent(req.params.grant_type),
@@ -64,13 +66,17 @@ router.post('/token', function (req, res) {
             if (app) {
                 dbo.collection("clients_api").findOne({client_public: req.session.authCode.split(':')[0]}, function (err, api_client) {
                     if (err) console.log(err);
-                    res.json(jwt.sign({
-                        app_name: app.name,
-                        app_id: app.app_id,
-                    }, api_client.client_secret, {expiresIn: '1h'}));
+                    if (api_client){
+                        res.json(jwt.sign({
+                            app_name: app.name,
+                            app_id: app.app_id,
+                        }, api_client.client_secret, {expiresIn: '1h'}));
+                    }else {
+                        res.json('App Not Found, Bad Request');
+                    }
                 });
             } else {
-                res.json('Bad Request')
+                res.json('Invalid Token, Bad Request');
             }
         });
     });

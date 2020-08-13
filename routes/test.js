@@ -9,8 +9,10 @@ Date.prototype.isValid = function () {
     // and NaN is never equal to itself.
     return this.getTime() === this.getTime();
 };
-
-/* GET home page. */
+router.get('/NANANA', function (req, res, next) {
+    res.json(req.cookies);
+});
+/*
 router.get('/:jwt', function (req, res, next) {
     jwt.verify(req.params.jwt, '9B113DD29D8C85EDD7E15E182A1E8', function (err, decoded) {
         if (err) {
@@ -29,4 +31,6 @@ router.get('/', function (req, res, next) {
         res.json('Valid');
     }
 });
+*/
+
 module.exports = router;

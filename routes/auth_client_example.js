@@ -6,6 +6,7 @@ const express = require('express'),
     url = require('url'),
     jwt = require('jsonwebtoken');
 var mongo_uri = require('.././keys/mongo_key');
+const my_secret = 'Tc3YTA5YWEwZjNlMmZkM2Y4IsImdy', my_public = 'A5YWEwZjNlMmZkM2Y4ZTc3YTczZSI';
 
 const grant_types_index = {
     'email': {
@@ -46,7 +47,7 @@ router.post('/', function (req, res, next) {
         password = req.body.password,
         username = req.body.username,
         token = req.body.token;
-    jwt.verify(token, 'HLRnfT8Ri6Oe5kf4tiNTv1S4VGhCA', {}, function (err, decoded) {
+    jwt.verify(token, my_secret, function (err, decoded) {
         if (err) {
             res.json('Token Expired');
         }
@@ -61,8 +62,8 @@ router.post('/', function (req, res, next) {
                 }
                 let dbo = db.db("auth");
                 dbo.collection("users").findOne({
-                    username: req.body.username,
-                    password: req.body.password
+                    username: username,
+                    password: password
                 }, function (err, result) {
                     if (err) res.json(err);
                     if (result) {

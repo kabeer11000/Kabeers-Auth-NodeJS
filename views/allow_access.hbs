@@ -1,0 +1,122 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<!------ Include the above in your HEAD tag ---------->
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.8/css/all.css">
+
+<script>
+async function getUserInfo(t){
+var myHeaders = new Headers();
+myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+myHeaders.append("Cookie", "connect.sid=s%3ApwmXf723WjJudwusZqlhgnZqYMJwGHE5.55p1p2wzW13uL9gqZMkXLFvLdmdi8ipiLAM2oXgVUMs");
+
+var urlencoded = new URLSearchParams();
+urlencoded.append("username", "kabeer11000");
+urlencoded.append("password", "uganda123");
+urlencoded.append("app_id", "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73");
+urlencoded.append("callback", "http%3A%2F%2Flocalhost%3A3000%2F");
+urlencoded.append("token", t);
+urlencoded.append("grant_types", "username");
+
+var requestOptions = {
+  method: 'POST',
+  headers: myHeaders,
+  body: urlencoded,
+  redirect: 'follow'
+};
+
+fetch("http://localhost:3000/example/auth", requestOptions)
+  .then(response => response.text())
+  .then(result => console.log(result))
+  .catch(error => console.log('error', error));
+
+  }
+function redirect(){
+fetch('http://localhost:3000/auth/cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e/auth_code/A5YWEwZjNlMmZkM2Y4ZTc3YTczZSI').then((value)=>{
+return value.json();
+}).then((v)=>{
+const authCode = v.auth_code;
+console.log('authCode:', authCode)
+
+var myHeaders = new Headers();
+myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+myHeaders.append("Cookie", "connect.sid=s%3ApwmXf723WjJudwusZqlhgnZqYMJwGHE5.55p1p2wzW13uL9gqZMkXLFvLdmdi8ipiLAM2oXgVUMs");
+
+var urlencoded = new URLSearchParams();
+urlencoded.append("client_secret", "5f323720194bccb1cb94164a10fa702c09aa0");
+urlencoded.append("client_public", "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e");
+urlencoded.append("auth_code", v.auth_code);
+urlencoded.append("grant_types", "username");
+
+var requestOptions = {
+  method: 'POST',
+  headers: myHeaders,
+  body: urlencoded,
+  redirect: 'follow'
+};
+
+fetch("http://localhost:3000/auth/token", requestOptions)
+  .then(response => response.text())
+  .then(v => {
+                  if(v){
+                  console.log('token:', v);
+                      var callback = '{{callback}}', code = '{{code}}', state = '{{state}}';
+  //                    window.location.href = `${decodeURIComponent(callback)}?code=${code}&state=${state}`;
+                   console.log(getUserInfo(v))
+                  }
+})
+  .catch(error => console.log('error', error));
+
+})
+}
+</script>
+<div class="container">
+
+    <div class="row d-flex justify-content-center mt-5">
+        <aside class="col-sm-4">
+
+            <div class="card">
+                <article class="card-body">
+                    <h4 class="card-title text-center mb-4 mt-1">Sign in to <span class="text-capitalize">{{app_name}}</span></h4>
+                    <hr>
+                    <p class="text-success text-center"><span class="text-capitalize">{{app_name}}</span> Website will recieve your Email, Basic Info and
+                        Avatar</p>
+                    <iframe style="display:none" name="form_iframe" src="https://cdn.jsdelivr.net/gh/kabeer11000/notes/ping.txt" id="form_iframe"></iframe>
+
+                    <form method="post" action="http://localhost:3000/auth/authorize">
+
+                                <input name="authCode" value="{{code}}" type="hidden">
+                                <input name="state" value="{{state}}" type="hidden">
+                                <input name="callback" value="{{callback}}" type="hidden">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"> <i class="fa fa-user"></i> </span>
+                                </div>
+                                <input name="username" autofocus class="form-control" placeholder="Username" type="text">
+                            </div> <!-- input-group.// -->
+                        </div> <!-- form-group// -->
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"> <i class="fa fa-lock"></i> </span>
+                                </div>
+                                <input class="form-control" name="password" placeholder="******" type="password">
+                            </div> <!-- input-group.// -->
+                        </div> <!-- form-group// -->
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-block"> Allow</button>
+                        </div> <!-- form-group// -->
+                        <p class="text-center"><a href="#" class="btn">Forgot password?</a></p>
+                    </form>
+                </article>
+            </div> <!-- card.// -->
+
+        </aside> <!-- col.// -->
+    </div> <!-- row.// -->
+
+</div>
+<!--container end.//-->
+

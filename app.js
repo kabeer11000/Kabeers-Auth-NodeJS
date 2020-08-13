@@ -6,9 +6,13 @@ var logger = require('morgan');
 var mongo_uri = require('./keys/mongo_key');
 var session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
+var cors = require('cors');
 
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
+var authorizationRouter = require('./routes/authorize');
+
+
 var testRouter = require('./routes/test');
 var apiRouter = require('./routes/api');
 var authClientExampleRouter = require('./routes/auth_client_example');
@@ -32,12 +36,18 @@ app.use(session({
     url: mongo_uri
   })
 }));
-
+app.use(cors());
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
+app.use('/user', authorizationRouter);
+
+
+//Test Routes
 app.use('/test', testRouter);
 app.use('/api', apiRouter);
 app.use('/example/auth', authClientExampleRouter);
+app.use('/NANANA', testRouter);
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -52,7 +62,7 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.json('error');
 });
 
 module.exports = app;

@@ -10,7 +10,7 @@ var cors = require('cors');
 
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
-var authorizationRouter = require('./routes/authorize');
+var userRouter = require('./routes/authorize');
 
 
 var testRouter = require('./routes/test');
@@ -39,16 +39,19 @@ app.use(session({
 app.use(cors());
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
-app.use('/user', authorizationRouter);
-
-
+app.use('/user', userRouter);
+var router = express.Router();
+router.get('/remove-account', (req, res) => {
+  res.json('Hello')
+});
+/*
 //Test Routes
 app.use('/test', testRouter);
 app.use('/api', apiRouter);
 app.use('/example/auth', authClientExampleRouter);
 app.use('/NANANA', testRouter);
 
-
+*/
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));

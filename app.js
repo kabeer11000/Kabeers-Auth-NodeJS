@@ -52,6 +52,7 @@ app.use('/example/auth', authClientExampleRouter);
 app.use('/NANANA', testRouter);
 
 */
+
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
@@ -65,7 +66,7 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.json('error');
+  res.json(err);
 });
 
 module.exports = app;

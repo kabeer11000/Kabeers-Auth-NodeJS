@@ -26,7 +26,20 @@ const express = require('express'),
     };
 let jwt_secret = makeid(30);
 let array_checker = (arr, target) => target.every(v => arr.includes(v));
-var refreshTokens = {};
+let sessions_auth = [];
+
+async function setDefaultUser(res, result) {
+    if (result) {
+        const user_cookie = {
+            username: result.username,
+            email: result.email,
+            account_image: result.account_image,
+            password: result.password,
+            user_id: result.user_id,
+        };
+        res.cookie('default_account', JSON.stringify(user_cookie));
+    }
+}
 
 function getAppCookies(req, res) {
     const rawCookies = req.headers.cookie.split('; ');
@@ -157,40 +170,118 @@ router.post('/authorize', (req, res) => {
             if (err) res.json(err);
             if (result && token) {
                 let allowed_apps = result.allowed_apps;
-
                 const json_data = jwt.decode(getAppCookies(req, res)['bearer-token']);
-                const id_token = jwt.sign({
-                    user_id: makeid(10) + ':' + Buffer.from(result.user_id).toString('base64'),
-                    time: Date.now(),
-                    grant_types: json_data.grant_types
-                }, jwt_secret, {expiresIn: '30s'});
-                let index = allowed_apps.findIndex(m => m === json_data.app_id);
-                if (index === -1) {
+                //const userid = makeid(10) + ':' + Buffer.from(result.user_id).toString('base64');
+
+                if (allowed_apps.findIndex(m => m === json_data.app_id) === -1) {
                     allowed_apps.push(json_data.app_id);
+                }
+                const authCode_id = makeid(13);
+                const json = {
+                    auth_code: authCode_id,
+                    app_id: json_data.app_id,
+                    user_id: result.user_id,
+                    time: Date.now(),
+                    expires: '2m',
+                    callback: json_data.callback,
+                    grant_types: json_data.grant_types
+                };
+                if (sessions_auth.findIndex(m => m.auth_code === json.auth_code) === -1) {
+                    sessions_auth.push(json);
                 }
                 dbo.collection("users").updateOne({
                     username: username,
                     password: password
                 }, {$set: {allowed_apps: allowed_apps}}, {upsert: false}, function (err, result_) {
                     if (err) console.log(err);
-                    if (result_) {
-
-                        const user_cookie = {
-                            username: result.username,
-                            email: result.email,
-                            account_image: result.account_image,
-                            password: result.password,
-                            user_id: result.user_id,
-                        };
-                        res.cookie('default_account', JSON.stringify(user_cookie));
-                        res.redirect(`${decodeURIComponent(json_data.callback)}?token=${id_token}&state=${json_data.state}`);
-                    }
+                    setDefaultUser(res, result).then(() => {
+                        //res.json(json.auth_code)
+                        res.redirect(`${decodeURIComponent(json.callback)}?code=${json.auth_code}&state=${json_data.state}`);
+                    });
                 });
             } else {
                 res.json('Bad Request')
             }
         });
     });
+});
+router.post('/token', (req, res) => {
+    if (!req.body.client_secret ||
+        !req.body.client_public ||
+        !req.body.auth_code) {
+        // sessions_auth.findIndex(m => m.auth_code === req.body.auth_code) === -1
+        return res.json('Some Params Were Missing');
+    }
+    const session_value = sessions_auth[sessions_auth.findIndex(m => m.auth_code === req.body.auth_code)];
+    if (Math.floor((Date.now() - session_value.time) / 1000) > 20) {
+        res.json('AuthCode Expired');
+        //throw new Error('AuthCode Expired');
+    } else {
+        const
+            app_public = req.body.client_public,
+            app_secret = req.body.client_secret;
+
+        if (req.body.auth_code === session_value.auth_code) {
+
+            MongoClient.connect(mongo_uri, {useNewUrlParser: true, useUnifiedTopology: true}, function (err, db) {
+                if (err) {
+                    res.json('Cannot Connect to DB');
+                }
+                let dbo = db.db("auth");
+
+                dbo.collection("clients_app").findOne({
+                    app_id: app_public,
+                    app_secret: app_secret
+                }, function (err, app) {
+                    if (err) res.json(err);
+                    if (app) {
+                        let access_token = jwt.sign({
+                            type: "access_token",
+                            app_id: app_public,
+                            app_secret: app_secret,
+                            grant_types: session_value.grant_types,
+                            time: Date.now(),
+                            user_id: makeid(10) + ':' + Buffer.from(session_value.user_id).toString('base64'),
+                        }, jwt_secret);
+                        let refresh_token = jwt.sign({
+                            type: "refresh_token",
+                            app_id: app_public,
+                            app_secret: app_secret,
+                            grant_types: session_value.grant_types,
+                            time: Date.now(),
+                            user_id: makeid(10) + ':' + Buffer.from(session_value.user_id).toString('base64'),
+                        }, jwt_secret);
+                        res.json({
+                            access_token: access_token,
+                            refresh_token: refresh_token,
+                        })
+                    }
+                });
+            });
+        }
+    }
+});
+
+router.post('/refresh', (req, res) => {
+    if (!req.body.refresh_token) {
+        res.status(400);
+        res.json('Some Params Were Missing, Bad Request');
+    }
+    var decoded = jwt.verify(req.body.refresh_token, jwt_secret);
+    if (Math.floor((Date.now() - decoded.time) / 1000 / 60 / 60) > 10 || decoded.type !== "refresh_token") {
+        res.status(400);
+        res.json('Token Expired');
+    } else {
+        let access_token = jwt.sign({
+            type: "access_token",
+            time: Date.now(),
+            app_id: decoded.app_id,
+            app_secret: decoded.app_secret,
+            grant_types: decoded.grant_types,
+            user_id: decoded.user_id,
+        }, jwt_secret);
+        res.json(access_token);
+    }
 });
 router.post('/userinfo', (req, res) => {
     if (!req.body.client_public || !req.body.client_secret || !req.body.token) {
@@ -199,7 +290,7 @@ router.post('/userinfo', (req, res) => {
         //throw new Error('Some Params Were Missing');
     }
     var decoded = jwt.verify(req.body.token, jwt_secret);
-    if (Math.floor((Date.now() - decoded.time) / 1000) > 30) {
+    if (decoded && Math.floor((Date.now() - decoded.time) / 1000) > 30 || decoded.type !== "access_token") {
         res.status(400);
         res.json('Token Expired');
         //throw new Error('Token Expired');

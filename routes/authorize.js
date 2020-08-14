@@ -24,7 +24,7 @@ const express = require('express'),
             description: 'View Basic Account Info',
         },
     };
-let jwt_secret = makeid(30);
+let jwt_secret = '42cChhRGag9Ux9z9l2phPRMk4Wvj5w';
 let array_checker = (arr, target) => target.every(v => arr.includes(v));
 let sessions_auth = [];
 
@@ -36,6 +36,7 @@ async function setDefaultUser(res, result) {
             account_image: result.account_image,
             password: result.password,
             user_id: result.user_id,
+            allowed_apps: JSON.stringify(result.allowed_apps)
         };
         res.cookie('default_account', JSON.stringify(user_cookie));
     }
@@ -112,22 +113,43 @@ router.get('/authorize/:app_id/:callback/:grant_types/:state/?', function (req, 
                     grant_ui.map((v) => {
                         html += `<li class="list-group-item">${v.title}<br/><small class="text-muted">${v.description}</small></li>`;
                     });
+
                     const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
                     if (default_account) {
-                        res.render('allow_acces_default_account.hbs', {
-                            username_: default_account.username,
-                            password_: default_account.password,
-                            profile_img: default_account.account_image,
-                            app_name: result.name,
-                            grant_types_ui: html,
-                            callback: result.callback_domain,
-                            code: authCode_id,
-                            state: req.params.state,
-                        });
+                        const cookie_allowed_apps = default_account.allowed_apps;
+                        if (cookie_allowed_apps.includes(app_id)) {
+                            res.render('allow_acces_default_account.hbs', {
+                                username_: default_account.username,
+                                password_: default_account.password,
+                                profile_img: default_account.account_image,
+                                app_name: result.name,
+                                grant_types_ui: html,
+                                desc: `${result.name} has already been granted access to this account. ${result.name} has access to:`,
+                                btn: 'Continue',
+                                callback: result.callback_domain,
+                                code: authCode_id,
+                                state: req.params.state,
+                            });
+                        } else {
+                            res.render('allow_acces_default_account.hbs', {
+                                username_: default_account.username,
+                                password_: default_account.password,
+                                profile_img: default_account.account_image,
+                                app_name: result.name,
+                                grant_types_ui: html,
+                                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                                btn: 'Allow',
+                                callback: result.callback_domain,
+                                code: authCode_id,
+                                state: req.params.state,
+                            });
+                        }
                     } else {
                         res.render('allow_acces_password', {
                             app_name: result.name,
-                            grant_types_ui: 'Basic Info Including Email and Username',
+                            grant_types_ui: html,
+                            desc: `${result.name} wants access to this account.`,
+                            btn: 'Allow',
                             callback: result.callback_domain,
                             code: authCode_id,
                             state: req.params.state,
@@ -268,7 +290,7 @@ router.post('/refresh', (req, res) => {
         res.json('Some Params Were Missing, Bad Request');
     }
     var decoded = jwt.verify(req.body.refresh_token, jwt_secret);
-    if (Math.floor((Date.now() - decoded.time) / 1000 / 60 / 60) > 10 || decoded.type !== "refresh_token") {
+    if (Math.floor((Date.now() - decoded.time) / 1000 / 60 / 60) > 20 || decoded.type !== "refresh_token") {
         res.status(400);
         res.json('Token Expired');
     } else {

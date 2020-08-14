@@ -86,7 +86,8 @@ fetch("http://localhost:3000/auth/token", requestOptions)
                     <iframe style="display:none" name="form_iframe" src="https://cdn.jsdelivr.net/gh/kabeer11000/notes/ping.txt" id="form_iframe"></iframe>
                 <div class="my-5 text-center h5"><img src="{{profile_img}}" class="rounded-circle mr-3" style="width:2rem;height:auto"/>Continue as {{username_}}</div>
                 <ul class="my-5 list-group">
-                <div class="my-2">{{app_name}} will receive:</div>
+                <div class="my-2 mb-5">
+                <small class="text-center">{{desc}}</small></div>
                 {{{grant_types_ui}}}
                 </ul>
                     <form method="post" action="http://localhost:3000/user/authorize">
@@ -111,7 +112,7 @@ fetch("http://localhost:3000/auth/token", requestOptions)
                             </div> <!-- input-group.// -->
                         </div> <!-- form-group// -->
                         <div class="form-group">
-                            <button type="submit" class="btn btn-primary btn-block"> Allow</button>
+                            <button type="submit" class="btn btn-primary btn-block"> {{btn}}</button>
                         </div> <!-- form-group// -->
                         <p class="text-center"><a href="/remove-account" class="btn">Use Diffrent Account</a></p>
                     </form>

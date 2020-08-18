@@ -7,8 +7,8 @@ var mongo_uri = require('./keys/mongo_key');
 var session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
 var cors = require('cors');
-var compression = require('compression');
-var helmet = require('helmet');
+//var compression = require('compression');
+//var helmet = require('helmet');
 
 
 var indexRouter = require('./routes/index');
@@ -22,7 +22,7 @@ var DriveRouter = require('./routes/components/kabeers_drive_example');
 var retrive_user_activity = require('./routes/services/retrive_user_activity');
 
 var app = express();
-app.use(compression());
+//app.use(compression());
 //app.use(helmet());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

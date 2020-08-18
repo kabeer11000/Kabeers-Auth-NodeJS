@@ -7,19 +7,23 @@ var mongo_uri = require('./keys/mongo_key');
 var session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
 var cors = require('cors');
+var compression = require('compression');
+var helmet = require('helmet');
+
 
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
 var userRouter = require('./routes/authorize');
+var DriveRouter = require('./routes/components/kabeers_drive_example');
 
-
-var testRouter = require('./routes/test');
-var apiRouter = require('./routes/api');
-var authClientExampleRouter = require('./routes/auth_client_example');
+//var testRouter = require('./routes/test');
+//var apiRouter = require('./routes/api');
+//var authClientExampleRouter = require('./routes/auth_client_example');
 var retrive_user_activity = require('./routes/services/retrive_user_activity');
 
 var app = express();
-
+app.use(compression());
+app.use(helmet());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
@@ -42,8 +46,8 @@ app.use(cors());
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
-
 app.use('/activity', retrive_user_activity);
+app.use('/test/drive', DriveRouter);
 /*
 //Test Routes
 app.use('/test', testRouter);

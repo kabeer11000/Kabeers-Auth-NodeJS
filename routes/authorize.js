@@ -99,37 +99,38 @@ router.get('/authorize/:app_id/:callback/:grant_types/:state/:prompt?', function
         if (err) {
             res.json('Cannot Connect to DB');
         }
-        let dbo = db.db("auth");
-        dbo.collection("clients_app").findOne({app_id: app_id}, function (err, result) {
-            if (err) res.json(err);
-            if (result && url.parse(result.callback_domain).host === callback.host) {
-                const authCode_id = makeid(13);
+        if (db) {
+            let dbo = db.db("auth");
+            dbo.collection("clients_app").findOne({app_id: app_id}, function (err, result) {
+                if (err) res.json(err);
+                if (result && url.parse(result.callback_domain).host === callback.host) {
+                    const authCode_id = makeid(13);
 
-                const json = {
-                    auth_code: authCode_id,
-                    app_id: app_id,
-                    remote_app_id: remote_app_id,
-                    time: Date.now(),
-                    expires: '2M',
-                    callback: result.callback_domain,
-                    state: req.params.state,
-                    grant_types: req.params.grant_types,
-                    scope: 'userinfo'
-                };
-                const gtypes_split = grant_types.split(':');
-                if (!array_checker("email:username:account_image:user_id".split(':'), gtypes_split)) {
-                    res.json('Invalid Claim Types');
-                } else {
-                    let grant_ui = [], html = ``;
-                    try {
-                        grant_types.split(':').map((v, i) => {
-                            grant_ui.push(grant_types_index[v]);
-                        });
-                    } catch (e) {
-                        console.log(e)
-                    }
-                    grant_ui.map((v) => {
-                        html += `
+                    const json = {
+                        auth_code: authCode_id,
+                        app_id: app_id,
+                        remote_app_id: remote_app_id,
+                        time: Date.now(),
+                        expires: '2M',
+                        callback: result.callback_domain,
+                        state: req.params.state,
+                        grant_types: req.params.grant_types,
+                        scope: 'userinfo'
+                    };
+                    const gtypes_split = grant_types.split(':');
+                    if (!array_checker("email:username:account_image:user_id".split(':'), gtypes_split)) {
+                        res.json('Invalid Claim Types');
+                    } else {
+                        let grant_ui = [], html = ``;
+                        try {
+                            grant_types.split(':').map((v, i) => {
+                                grant_ui.push(grant_types_index[v]);
+                            });
+                        } catch (e) {
+                            console.log(e)
+                        }
+                        grant_ui.map((v) => {
+                            html += `
                           <li class="mdc-list-item" tabindex="0">
                             <span class="mdc-list-item__ripple"></span>
                             <span class="mdc-list-item__text">
@@ -138,19 +139,33 @@ router.get('/authorize/:app_id/:callback/:grant_types/:state/:prompt?', function
                             </span>
                           </li>
                         `;
-                    });
+                        });
 
-                    const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
-                    if (default_account) {
-                        const cookie_allowed_apps = default_account.allowed_apps;
-                        if (cookie_allowed_apps.includes(app_id)) {
-                            if (prompt === 'none') {
-                                res.render('auto_redirect.hbs', {
-                                    username: default_account.username,
-                                    password: default_account.password,
-                                });
-                            } else if (prompt === 'select_account') {
-                                res.render('client_script', {script: `<script>window.location.href="http://localhost:3000/user/chooser"</script>`})
+                        const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
+                        if (default_account) {
+                            const cookie_allowed_apps = default_account.allowed_apps;
+                            if (cookie_allowed_apps.includes(app_id)) {
+                                if (prompt === 'none') {
+                                    res.render('auto_redirect.hbs', {
+                                        username: default_account.username,
+                                        password: default_account.password,
+                                    });
+                                } else if (prompt === 'select_account') {
+                                    res.render('client_script', {script: `<script>window.location.href="http://localhost:3000/user/chooser"</script>`})
+                                } else {
+                                    res.render('allow_acces_default_account.hbs', {
+                                        username_: default_account.username,
+                                        password_: default_account.password,
+                                        profile_img: default_account.account_image,
+                                        app_name: result.name,
+                                        grant_types_ui: html,
+                                        desc: `${result.name} has already been granted access to this account. ${result.name} has access to:`,
+                                        btn: 'Continue',
+                                        callback: result.callback_domain,
+                                        code: authCode_id,
+                                        state: req.params.state,
+                                    });
+                                }
                             } else {
                                 res.render('allow_acces_default_account.hbs', {
                                     username_: default_account.username,
@@ -158,49 +173,36 @@ router.get('/authorize/:app_id/:callback/:grant_types/:state/:prompt?', function
                                     profile_img: default_account.account_image,
                                     app_name: result.name,
                                     grant_types_ui: html,
-                                    desc: `${result.name} has already been granted access to this account. ${result.name} has access to:`,
-                                    btn: 'Continue',
+                                    desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                                    btn: 'Allow',
                                     callback: result.callback_domain,
                                     code: authCode_id,
                                     state: req.params.state,
                                 });
                             }
                         } else {
-                            res.render('allow_acces_default_account.hbs', {
-                                username_: default_account.username,
-                                password_: default_account.password,
-                                profile_img: default_account.account_image,
+                            res.render('allow_acces_password', {
                                 app_name: result.name,
                                 grant_types_ui: html,
-                                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                                desc: `${result.name} wants access to this account.`,
                                 btn: 'Allow',
                                 callback: result.callback_domain,
                                 code: authCode_id,
                                 state: req.params.state,
                             });
                         }
-                    } else {
-                        res.render('allow_acces_password', {
-                            app_name: result.name,
-                            grant_types_ui: html,
-                            desc: `${result.name} wants access to this account.`,
-                            btn: 'Allow',
-                            callback: result.callback_domain,
-                            code: authCode_id,
-                            state: req.params.state,
-                        });
-                    }
 
-                    const token = jwt.sign({
-                        ...json
-                    }, jwt_secret, {expiresIn: '1m'});
-                    res.cookie('bearer', token, {maxAge: new Date(60000), httpOnly: false});
-                    res.cookie('bearer-token', token, {maxAge: new Date(60000), httpOnly: false})
+                        const token = jwt.sign({
+                            ...json
+                        }, jwt_secret, {expiresIn: '1m'});
+                        res.cookie('bearer', token, {maxAge: new Date(60000), httpOnly: false});
+                        res.cookie('bearer-token', token, {maxAge: new Date(60000), httpOnly: false})
+                    }
+                } else {
+                    res.json('Bad Request')
                 }
-            } else {
-                res.json('Bad Request')
-            }
-        });
+            });
+        }
     });
 });
 router.post('/authorize', (req, res) => {

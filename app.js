@@ -23,7 +23,7 @@ var retrive_user_activity = require('./routes/services/retrive_user_activity');
 
 var app = express();
 app.use(compression());
-app.use(helmet());
+//app.use(helmet());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');

@@ -5,31 +5,7 @@ const express = require('express'),
     MongoClient = mongo.MongoClient,
     url = require('url'),
     jwt = require('jsonwebtoken'),
-    mongo_uri = require('.././keys/mongo_key'),
-    grant_types_index = {
-        'email': {
-            title: 'Email Address.',
-            description: 'Public Email Address for This Account.',
-        },
-        'account_image': {
-            title: 'Account Image and Avatar',
-            description: 'Account Profile Picture',
-        },
-        'basic_info': {
-            title: 'Basic Info Including Locale and IP',
-            description: 'View Basic Account Info',
-        },
-    };
-
-function getAppCookies(req, res) {
-    const rawCookies = req.headers.cookie.split('; ');
-    const parsedCookies = {};
-    rawCookies.forEach(rawCookie => {
-        const parsedCookie = rawCookie.split('=');
-        parsedCookies[parsedCookie[0]] = parsedCookie[1];
-    });
-    return parsedCookies;
-}
+    mongo_uri = require('.././keys/mongo_key');
 
 function makeid(length) {
     let result = '';

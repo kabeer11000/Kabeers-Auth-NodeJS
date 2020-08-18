@@ -27,7 +27,6 @@ const express = require('express'),
 let jwt_secret = '42cChhRGag9Ux9z9l2phPRMk4Wvj5w';
 let array_checker = (arr, target) => target.every(v => arr.includes(v));
 let sessions_auth = [];
-const ipInfo = require("ipinfo");
 let mongoose = require('mongoose');
 const fileGetContents = require('file-get-contents');
 

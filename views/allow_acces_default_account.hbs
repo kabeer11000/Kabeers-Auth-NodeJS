@@ -2696,7 +2696,7 @@
     }
 
     function redirect() {
-        fetch('http://localhost:3000/auth/cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e/auth_code/A5YWEwZjNlMmZkM2Y4ZTc3YTczZSI').then((value) => {
+        fetch('/auth/cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e/auth_code/A5YWEwZjNlMmZkM2Y4ZTc3YTczZSI').then((value) => {
             return value.json();
         }).then((v) => {
             const authCode = v.auth_code;
@@ -2719,7 +2719,7 @@
                 redirect: 'follow'
             };
 
-            fetch("http://localhost:3000/auth/token", requestOptions)
+            fetch("/auth/token", requestOptions)
                     .then(response => response.text())
                     .then(v => {
                         if (v) {

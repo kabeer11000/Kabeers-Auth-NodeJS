@@ -150,7 +150,7 @@ router.get('/authorize/:app_id/:callback/:grant_types/:state/:prompt?', function
                                         password: default_account.password,
                                     });
                                 } else if (prompt === 'select_account') {
-                                    res.render('client_script', {script: `<script>window.location.href="http://localhost:3000/user/chooser"</script>`})
+                                    res.render('client_script', {script: `<script>window.location.href="/user/chooser"</script>`})
                                 } else {
                                     res.render('allow_acces_default_account.hbs', {
                                         username_: default_account.username,

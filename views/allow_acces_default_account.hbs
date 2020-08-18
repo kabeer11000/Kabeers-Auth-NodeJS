@@ -2765,7 +2765,7 @@
                     <script>
                         function login_() {
                             var settings = {
-                                "url": "http://localhost:3000/user/authorize",
+                                "url": "/user/authorize",
                                 "method": "POST",
                                 "timeout": 0,
                                 "headers": {
@@ -2819,7 +2819,7 @@
                             }
                         })
                     </script>
-                    <div method="post" action="http://localhost:3000/user/authorize">
+                    <div method="post" action="/user/authorize">
 
                         <input name="authCode" value="{{code}}" type="hidden">
                         <input name="state" value="{{state}}" type="hidden">
@@ -2845,7 +2845,7 @@
                         <div class="form-group">
                             <button type="submit" onclick="login_()"
                                     class="btn btn-raised btn-primary btn-block"> {{btn}}</button>
-                            <a href="http://localhost:3000/user/chooser" class="w-100 btn btn-block">Choose another
+                            <a href="/user/chooser" class="w-100 btn btn-block">Choose another
                                 Account</a>
                         </div> <!-- form-group// -->
                     </div>

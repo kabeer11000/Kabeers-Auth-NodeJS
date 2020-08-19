@@ -100,19 +100,14 @@ const text = {
         }
     ]
 };
-router.get('/:jwt/auth/:username/:password/:state', function (req, res, next) {
+router.get('/:jwt', function (req, res, next) {
     jwt.verify(req.params.jwt, 'HLRnfT8Ri6Oe5kf4tiNTv1S4VGhCA', function (err, decoded) {
         if (err) {
             res.json('Token Expired')
         }
-        if (decoded) {
-            if (req.params.username && req.params.password) {
-                res.send(`ConsentScreen <br> <form method="post" action="../../../../allow"><input name="state" type="hidden" value="${req.params.state}"><button type="submit">Allow</button></form>`)
-            }
+        if (decoded && decoded.user_id === 'c4000376114184b38e2f00e43b070a9fe239457d') {
+            res.json(text)
         }
     });
-});
-router.post('/allow', function (req, res, next) {
-    res.redirect('https://google.com/jj/?code=' + makeid(20) + '&state=' + req.body.state);
 });
 module.exports = router;

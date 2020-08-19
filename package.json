@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www",
+    "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
     "heroku-prebuild": "echo This runs before Heroku installs dependencies.",
     "heroku-postbuild": "echo PPnodemon ./bin/www",
@@ -27,8 +27,7 @@
     "mongoose": "^5.10.0",
     "morgan": "~1.9.1",
     "pug": "2.0.0-beta11",
-    "request": "^2.88.2",
-    "nodemon": "^2.0.4"
+    "request": "^2.88.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"

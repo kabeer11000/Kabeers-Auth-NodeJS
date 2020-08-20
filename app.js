@@ -15,6 +15,7 @@ var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
 var userRouter = require('./routes/authorize');
 var DriveRouter = require('./routes/components/kabeers_drive_example');
+var DevelopersRouter = require('./routes/components/api/developers/developers');
 
 //var testRouter = require('./routes/test');
 //var apiRouter = require('./routes/api');
@@ -34,7 +35,7 @@ app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-  secret: '3E144994E3E17F9B',
+  secret: '5s323720194bccb1cb94164a13E144994E3E17F9B',
   resave: false,
   saveUninitialized: false,
   store: new MongoStore({
@@ -46,6 +47,7 @@ app.use(cors());
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
+app.use('/devs/api', DevelopersRouter);
 app.use('/activity', retrive_user_activity);
 app.use('/test/drive', DriveRouter);
 /*

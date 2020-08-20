@@ -2657,9 +2657,14 @@
     });
 </script>
 <script>
+    const code = '{{code}}';
+    if (!code) {
+        window.location.href = './'
+    }
+
     function login_(u, p) {
         $.ajax({
-            url: "/user/authorize",
+            url: "/auth/allow",
             method: "POST",
             timeout: 0,
             headers: {
@@ -2668,6 +2673,7 @@
             data: {
                 username: u,
                 password: atob(p),
+                auth_code: code
             },
             tryCount: 0,
             retryLimit: 3,
@@ -2713,9 +2719,7 @@
 </script>
 <script>
     $(document).ready(function () {
-        if (!$.cookie('bearer') || !$.cookie('bearer-token')) {
-            window.history.back()
-        }
+
         if (localStorage.getItem("accounts") != null) {
             let data = JSON.parse(localStorage.getItem("accounts"));
             for (let i = 0; i < data.length; i++) {
@@ -2748,12 +2752,12 @@
               `)*/
         } else {
             //$.cookie('default_account', null);
-            window.history.back()
+            //window.history.back()
             //window.location.href = "AccountLogin.php?url=<?php echo $_GET['url']; ?>&name=<?php echo $_GET['name']; ?>&action=login&token=<?php echo $_GET['token'];?>#hasPassword";
         }
         $(".removeAll").click(function () {
             localStorage.removeItem("accounts");
-            window.location.href = "AccountLogin.php?url=<?php echo $_GET['url']; ?>&name=<?php echo $_GET['name']; ?>&action=login&token=<?php echo $_GET['token'];?>#hasPassword";
+            //window.location.href = "AccountLogin.php?url=<?php echo $_GET['url']; ?>&name=<?php echo $_GET['name']; ?>&action=login&token=<?php echo $_GET['token'];?>#hasPassword";
         });
     });
 </script>

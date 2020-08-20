@@ -9,6 +9,8 @@ const MongoStore = require('connect-mongo')(session);
 var cors = require('cors');
 //var compression = require('compression');
 //var helmet = require('helmet');
+var kauth = require('./routes/authSDK');
+var router = express.Router();
 
 
 var indexRouter = require('./routes/index');
@@ -47,6 +49,7 @@ app.use(cors());
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
+
 app.use('/devs/api', DevelopersRouter);
 app.use('/activity', retrive_user_activity);
 app.use('/test/drive', DriveRouter);

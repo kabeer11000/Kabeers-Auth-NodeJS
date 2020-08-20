@@ -24,13 +24,27 @@ function getAppCookies(req) {
     return req.cookies;
 }
 
+async function setDefaultUser(res, result) {
+    if (result) {
+        const user_cookie = {
+            username: result.username,
+            email: result.email,
+            account_image: result.account_image,
+            password: result.password,
+            user_id: result.user_id,
+            allowed_apps: JSON.stringify(result.allowed_apps)
+        };
+        res.cookie('default_account', JSON.stringify(user_cookie), {httpOnly: false});
+    }
+}
+
 const operation = (list1, list2, isUnion = false) =>
     list1.filter(a => isUnion === list2.some(b => a === b));
 const inBoth = (list1, list2) => operation(list1, list2, true);
 
 let virtual_sessions = [], virtual_session_builder = [];
 
-router.get('/:app_id/:grant_types/:res_type/:callback/?:state', function (req, res, next) {
+router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', function (req, res, next) {
     if (!req.params.app_id || !req.params.grant_types) {
         res.json('Some Params Were Missing, Bad Request');
         throw new Error('Some Params Were Missing');
@@ -50,7 +64,7 @@ router.get('/:app_id/:grant_types/:res_type/:callback/?:state', function (req, r
                 const authCode_id = makeid(13);
                 const json = {
                     auth_code: authCode_id,
-                    app_id: app_id,
+                    app_id: result.app_id,
                     grant_types: grant_type,
                     time: Date.now(),
                     expires: '2m',
@@ -76,10 +90,30 @@ router.get('/:app_id/:grant_types/:res_type/:callback/?:state', function (req, r
                           </li>
                         `;
                 });
+                // Start Virtual Session
+                if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
+                    virtual_session_builder.push(json);
+                }
                 const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
                 if (default_account) {
                     const cookie_allowed_apps = default_account.allowed_apps;
                     if (cookie_allowed_apps.includes(app_id)) {
+                        if (req.params.prompt === 'none') return res.render('api_views/auto_redirect.hbs', {
+                            username_: default_account.username,
+                            password_: default_account.password,
+                            code: json.auth_code
+                        });
+                        if (req.params.prompt === 'chooser') return res.render('api_views/account_chooser', {code: json.auth_code});
+                        if (req.params.prompt === 'password') return res.render('api_views/allow_acces_password', {
+                            app_name: result.name,
+                            grant_types_ui: html,
+                            desc: `${result.name} wants access to this account.`,
+                            btn: 'Allow',
+                            callback: json.callback,
+                            code: json.auth_code,
+                            state: json.state,
+                            data: json,
+                        });
                         res.render('api_views/allow_acces_default_account.hbs', {
                             username_: default_account.username,
                             password_: default_account.password,
@@ -105,10 +139,6 @@ router.get('/:app_id/:grant_types/:res_type/:callback/?:state', function (req, r
                         state: json.state,
                         data: json,
                     });
-                }
-                // Start Virtual Session
-                if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
-                    virtual_session_builder.push(json);
                 }
             } else {
                 res.json('Bad Request')
@@ -159,13 +189,12 @@ router.post('/allow', function (req, res) {
                         // End Virtual Session Builder So They Dont Hog Memory
                         let authObjectIndex = virtual_session_builder.findIndex((_authObject) => _authObject.auth_code === inner_json.auth_code);
                         virtual_session_builder.splice(authObjectIndex, authObjectIndex);
-
-                        res.json({
+                        setDefaultUser(res, result);
+                        return res.json({
                             callback: `${decodeURIComponent(inner_json.callback)}?code=${inner_json.auth_code}&state=${inner_json.state}`,
                             user_data: result,
                         });
                     }).catch(e => {
-
                     console.error(e)
                 })
 
@@ -175,6 +204,7 @@ router.post('/allow', function (req, res) {
         });
     });
 });
+
 router.post('/token', function (req, res) {
     if (!req.body.client_secret ||
         !req.body.client_public ||
@@ -287,5 +317,4 @@ router.post('/refresh', (req, res) => {
         });
     }
 });
-
 module.exports = router;

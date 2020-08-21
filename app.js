@@ -15,7 +15,9 @@ var router = express.Router();
 
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
-var userRouter = require('./routes/authorize');
+//var userRouter = require('./routes/authorize');
+var userRouter = require('./routes/services/userinfo');
+
 var DriveRouter = require('./routes/components/kabeers_drive_example');
 var DevelopersRouter = require('./routes/components/api/developers/developers');
 

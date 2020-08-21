@@ -1,183 +1,119 @@
-<meta content="width=device-width, initial-scale=1" name="viewport">
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" id="bootstrap-css" rel="stylesheet">
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<!------ Include the above in your HEAD tag ---------->
+<?php
+/**
+* Builds an httpss query string.
+* @param array $query  // of key value pairs to be used in the query
+* @return string       // httpss query string.
+**/
+function build_httpss_query( $query ){
 
-<link href="https://use.fontawesome.com/releases/v5.0.8/css/all.css" rel="stylesheet">
+    $query_array = array();
 
+    foreach( $query as $key => $key_value ){
+
+$query_array[] = urlencode( $key ) . '=' . urlencode( $key_value );
+
+}
+
+return implode( '&', $query_array );
+
+}
+//header('Location: httpsss://hosted-kabeersnetwork.000webhostapp.com/auth/android/recieve/index.php?'.build_httpss_query($_GET));
+?>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<res></res>
 <script>
-    async function getUserInfo(t) {
-        var myHeaders = new Headers();
-        myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
-        myHeaders.append("Cookie", "connect.sid=s%3ApwmXf723WjJudwusZqlhgnZqYMJwGHE5.55p1p2wzW13uL9gqZMkXLFvLdmdi8ipiLAM2oXgVUMs");
-
-        var urlencoded = new URLSearchParams();
-        urlencoded.append("username", "kabeer11000");
-        urlencoded.append("password", "uganda123");
-        urlencoded.append("app_id", "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73");
-        urlencoded.append("callback", "http%3A%2F%2Flocalhost%3A3000%2F");
-        urlencoded.append("token", t);
-        urlencoded.append("grant_types", "username");
-
-        var requestOptions = {
-            method: 'POST',
-            headers: myHeaders,
-            body: urlencoded,
-            redirect: 'follow'
+    function getUserInfo(t) {
+        var settings = {
+            url: "http://localhost:3000/user/userinfo",
+            method: "POST",
+            timeout: 0,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data: {
+                token: t,
+                client_secret: "5f323720194bccb1cb94164a10fa702c09aa0",
+                client_public: "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e",
+            },
         };
 
-        fetch("http://localhost:3000/example/auth", requestOptions)
-            .then(response => response.text())
-            .then(result => console.log(result))
-            .catch(error => console.log('error', error));
+        $.ajax(settings).done(function (response) {
 
+            try {
+                console.log(response);
+                //window.opener.postMessage(response, '*');
+                //parent.close();
+
+            } catch (e) {
+                console.error(e)
+            }
+
+            $("res").html(`<img src="${response.account_image}"/>Welcome  ${response.username}<br>${response.email}`);
+        });
     }
 
-    function redirect() {
-        fetch('http://localhost:3000/auth/cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e/auth_code/A5YWEwZjNlMmZkM2Y4ZTc3YTczZSI').then((value) => {
-            return value.json();
-        }).then((v) => {
-            const authCode = v.auth_code;
-            console.log('authCode:', authCode);
-
-            var myHeaders = new Headers();
-            myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
-            myHeaders.append("Cookie", "connect.sid=s%3ApwmXf723WjJudwusZqlhgnZqYMJwGHE5.55p1p2wzW13uL9gqZMkXLFvLdmdi8ipiLAM2oXgVUMs");
-
-            var urlencoded = new URLSearchParams();
-            urlencoded.append("client_secret", "5f323720194bccb1cb94164a10fa702c09aa0");
-            urlencoded.append("client_public", "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e");
-            urlencoded.append("auth_code", v.auth_code);
-            urlencoded.append("grant_types", "username");
-
-            var requestOptions = {
-                method: 'POST',
-                headers: myHeaders,
-                body: urlencoded,
-                redirect: 'follow'
-            };
-
-            fetch("http://localhost:3000/auth/token", requestOptions)
-                .then(response => response.text())
-                .then(v => {
-                    if (v) {
-                        console.log('token:', v);
-                        var callback = '{{callback}}', code = '{{code}}', state = '{{state}}';
-                        //                    window.location.href = `${decodeURIComponent(callback)}?code=${code}&state=${state}`;
-                        console.log(getUserInfo(v))
-                    }
-                })
-                .catch(error => console.log('error', error));
-
-        })
+    async function GetToken(c) {
+        var settings = {
+            url: "http://localhost:3000/auth/token",
+            method: "POST",
+            timeout: 0,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data: {
+                client_secret: "5f323720194bccb1cb94164a10fa702c09aa0",
+                client_public: "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e",
+                auth_code: c,
+            },
+        };
+        let data = undefined;
+        await $.ajax(settings).done(function (res) {
+            console.log(res);
+            data = res
+        });
+        return data;
     }
+
+    async function refreshToken(r) {
+        var d = undefined;
+        var settings = {
+            "url": "http://localhost:3000/auth/refresh",
+            "method": "POST",
+            "timeout": 0,
+            "headers": {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            "data": {
+                client_secret: "5f323720194bccb1cb94164a10fa702c09aa0",
+                client_public: "cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e",
+                refresh_token: r,
+            }
+        };
+
+        await $.ajax(settings).done(function (response) {
+            console.log(response);
+            d = response;
+        });
+        return d;
+    }
+
+    const tokens_local = localStorage.getItem('tokens');
+    if (tokens_local) {
+        refreshToken(JSON.parse(tokens_local).refresh_token).then((v) => {
+            getUserInfo(v);
+        });
+    }
+    GetToken(`<?php if($_GET["code"]!=null){echo $_GET["code"];} ?>`).then((tokens) => {
+        if (tokens) {
+            tokens.map((v, i) => {
+                const key = Object.keys(v);
+                if (key.toString() === "AStroWorld_Cn9OuUNTZRfuaCnwc6") {
+
+                    localStorage.setItem('tokens', JSON.stringify(v[key]));
+                    console.log(v[key].access_token);
+                    getUserInfo(v[key].access_token);
+                }
+            });
+        }
+    });
 </script>
-<div class="container">
-
-    <div class="row d-flex justify-content-center mt-5">
-        <aside class="col-sm-4">
-
-            <div class="my-5 text-center h5"><img class="rounded-circle mr-3" src="{{profile_img}}"
-                                                  style="width:2rem;height:auto"/><img
-                    class="mx-3 mr-4"
-                    src="https://cdn4.iconfinder.com/data/icons/user-actions-10/24/Material_icons-08-79-512.png"
-                    style="width:2rem;height:auto"/><img
-                    class="rounded-circle mr-3"
-                    src="data:image/png;base64,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"
-                    style="width:2rem;height:auto"/></div>
-
-            <div class="card">
-                <article class="card-body">
-                    <h4 class="card-title text-capitalize text-center mb-4 mt-1">Continue to {{app_name}}</h4>
-                    <hr>
-                    <iframe id="form_iframe" name="form_iframe"
-                            src="https://cdn.jsdelivr.net/gh/kabeer11000/notes/ping.txt" style="display:none"></iframe>
-                    <div class="my-5 text-center h5"><img class="rounded-circle mr-3" src="{{profile_img}}"
-                                                          style="width:2rem;height:auto"/>Continue as {{username_}}
-                    </div>
-                    <ul class="my-5 list-group">
-                        <div class="my-2 mb-5">
-                            <small class="text-center">{{desc}}</small></div>
-                        {{{grant_types_ui}}}
-                    </ul>
-                    <script>
-                        function login_() {
-                            var a = {
-                                url: "http://localhost:3000/user/authorize",
-                                method: "POST",
-                                timeout: 0,
-                                headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                                data: {
-                                    username: document.querySelector(".username").value,
-                                    password: document.querySelector(".password").value
-                                },
-                            };
-                            $.ajax(a).done(function (a) {
-                                if (a) {
-                                    if ((null === localStorage.getItem("accounts"))) {
-                                        const e = [{
-                                            username: a.user_data.username,
-                                            email: a.user_data.email,
-                                            password: btoa(a.user_data.password),
-                                            account_image: a.user_data.account_image
-                                        }];
-                                        localStorage.setItem("accounts", JSON.stringify(e));
-                                    } else {
-                                        var e = JSON.parse(localStorage.getItem("accounts")),
-                                            t = {
-                                                username: a.user_data.username,
-                                                email: a.user_data.email,
-                                                password: btoa(a.user_data.password),
-                                                account_image: a.user_data.account_image
-                                            };
-                                        JSON.stringify(e).includes(JSON.stringify(t)) ||
-                                        (e.push({
-                                            username: a.user_data.username,
-                                            email: a.user_data.email,
-                                            password: btoa(a.user_data.password),
-                                            account_image: a.user_data.account_image
-                                        }), localStorage.setItem("accounts", JSON.stringify(e)));
-                                    }
-                                    window.location.href = a.callback;
-                                }
-                            });
-                        }
-                    </script>
-                    <div action="http://localhost:3000/user/authorize" method="post">
-
-                        <input name="authCode" type="hidden" value="{{code}}">
-                        <input name="state" type="hidden" value="{{state}}">
-                        <input name="callback" type="hidden" value="{{callback}}">
-                        <div class="form-group d-none">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"> <i class="fa fa-user"></i> </span>
-                                </div>
-                                <input autofocus class="form-control username" name="username" placeholder="Username"
-                                       type="hidden" value="{{username_}}">
-                            </div> <!-- input-group.// -->
-                        </div> <!-- form-group// -->
-                        <div class="form-group d-none">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"> <i class="fa fa-lock"></i> </span>
-                                </div>
-                                <input class="form-control password" name="password" placeholder="******"
-                                       type="hidden" value={{password_}}>
-                            </div> <!-- input-group.// -->
-                        </div> <!-- form-group// -->
-                        <div class="form-group">
-                            <button class="btn btn-primary btn-block" onclick="login_()" type="submit"> {{btn}}</button>
-                        </div> <!-- form-group// -->
-                        <p class="text-center"><a class="btn" href="/remove-account">Use Diffrent Account</a></p>
-                    </div>
-                </article>
-            </div> <!-- card.// -->
-
-        </aside> <!-- col.// -->
-    </div> <!-- row.// -->
-
-</div>
-<!--container end.//-->
-

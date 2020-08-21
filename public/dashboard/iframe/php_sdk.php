@@ -1,6 +1,130 @@
 <?php
+declare(strict_types=1);
+namespace Kabeers;
 include 'small-http.php';
-$response = SmallHttp::HTTPPost("http://localhost/service/foobar.php", array("postParam" => "foobar"));
+
+use Error;
+
+class KAuth
+{
+    public $tokens = null;
+    private $client_secret = '';
+    private $client_public = '';
+    private $save_dir = '';
+
+    public function getUserInfo($token)
+    {
+        if (!$token || !$this->client_secret || !$this->client_public) return 0;
+        return preg_replace("/\s+/", "", SmallHttp::HTTPPost("http://localhost:3000/user/userinfo",
+            array(
+                "client_public" => "$this->client_public",
+                "client_secret" => "$this->client_secret",
+                "token" => "$token"
+            )
+        ));
+    }
+
+    public function init($client_public, $client_secret, $save_dir)
+    {
+        if (!$client_public || !$client_secret || !$save_dir) return 0;
+        $this->client_public = $client_public;
+        $this->client_secret = $client_secret;
+        $this->save_dir = $save_dir;
+        if (isset($_GET['code'])) {
+            $token_response = json_decode($this->getAccessTokens($_GET['code']), true);
+            if ($token_response !== null && gettype($token_response) === 'array') {
+                for ($i = 0;
+                     $i < count($token_response);
+                     $i++) {
+                    foreach ($token_response[$i] as $key => $value) {
+                        $this->tokens = $token_response;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public function refreshToken($refresh_token)
+    {
+        if (!$this->client_secret || !$this->client_public || !$refresh_token) return 0;
+        $jwt_payload = json_decode(base64_decode(urldecode(explode('.', $refresh_token)[1])));
+        if ($jwt_payload->iat > $jwt_payload->exp) {
+            throw new Error('Refresh Token Expired');
+        }
+        return SmallHttp::HTTPPost("http://localhost:3000/auth/refresh",
+            array(
+                "client_public" => "$this->client_public",
+                "client_secret" => "$this->client_secret",
+                "refresh_token" => "$refresh_token"
+            ));
+
+    }
+
+    private function getAccessTokens($code)
+    {
+        if (!$this->client_secret || !$this->client_public || !$code) return 0;
+        return SmallHttp::HTTPPost("http://localhost:3000/auth/token",
+            array(
+                "client_public" => "$this->client_public",
+                "client_secret" => "$this->client_secret",
+                "auth_code" => "$code"
+            ));
+    }
+
+    public function saveToken(String $key, String $value)
+    {
+        if (!$value || !$key) return 0;
+        $r = false;
+        $key = md5($key);
+        if (isset($this->save_dir) && $this->save_dir !== '' || null) {
+            $save_key = fopen("$this->save_dir/$key.kauth_store", "w") or die("Unable to open file!");
+            fwrite($save_key, "$value");
+            fclose($save_key);
+            $r = true;
+        }
+        return $r;
+    }
+
+    public function getToken(String $key)
+    {
+        if (!$key) return 0;
+        $r = null;
+        $key = md5($key);
+        if (isset($this->save_dir) && $this->save_dir !== '' || null) {
+            $save_contents = null;
+            try {
+                $save_contents = file_get_contents("$this->save_dir/$key.kauth_store");
+                $r = true;
+            } catch (Exception $e) {
+                $r = false;
+            }
+            return $save_contents !== null || '' ? $save_contents : $r;
+        }
+        return true;
+    }
+}
+
+$s = new KAuth();
+$s->init('cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e', '5f323720194bccb1cb94164a10fa702c09aa0', './');
+if ($s->tokens) {
+    foreach ($s->tokens as $k) {
+        foreach ($k as $b => $value) {
+            if (array_search($value, $k) === 'p6rouHTvGJJCn9OuUNTZRfuaCnwc6') {
+                $info = $k[array_search($value, $k)];
+                echo $s->refreshToken($info['refresh_token']);
+                break;
+            }
+        }
+    }
+}
+
+//echo $s->refreshToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoicmVmcmVzaF90b2tlbiIsImFwcF9uYW1lIjoiRGVtbyBBcHAiLCJhcHBfaWQiOiJwNnJvdUhUdkdKSkNuOU91VU5UWlJmdWFDbndjNiIsInNpZ24iOnsiaXYiOiI0ZmVlM2EyOTEyMWE5MTQzYzA0YjIxODBhMGEyNjI0ZiIsImVuY3J5cHRlZERhdGEiOiI0MzdmODk3MTVlZDYzNzNmY2E1NjNiMGZkYjk3NzU2NGRiOWJlMmVhYTIxOTU3YmMzNzc1ZTg1YWZmMDc5YTJlIn0sImdyYW50X3R5cGVzIjoicDZyb3VIVHZHSkpDbjlPdVVOVFpSZnVhQ253YzY6ZmlsZXMiLCJ1c2VyX2lkIjoiYzQwMDAzNzYxMTQxODRiMzhlMmYwMGU0M2IwNzBhOWZlMjM5NDU3ZCIsImlhdCI6MTU5ODAxMTczNCwiZXhwIjoxNTk4ODc1NzM0fQ.BWxR7dwmKSSq21AisVHMvM17DUez-un5k4aWF-SVhjI');
+
+
+//$s->saveToken('PORn', 'SEX');
+//echo $s->getToken('PORn');
+/*
 $json =
     '[
    {
@@ -33,3 +157,5 @@ for ($i = 0; $i < count($array); $i++) {
     //print_r(array_search('tesxt', array_column($array, 'NAME', 'ID')));
     //echo array_search($array[$i], $array);
 }
+*/
+?>

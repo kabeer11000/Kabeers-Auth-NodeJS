@@ -22,7 +22,12 @@ router.post('/userinfo', (req, res) => {
     if (!req.body.token) {
         return res.status(400).json('Some Params Were Missing, Bad Request');
     }
-    let decoded = jwt.verify(req.body.token, jwt_secret);
+    let decoded;
+    try {
+        decoded = jwt.verify(req.body.token, jwt_secret);
+    } catch (err) {
+        return res.status(400).json('Token, Invalid Signature');
+    }
     if (decoded && Math.floor((Date.now() - decoded.time) / 1000) > 30 || decoded.type !== "access_token") {
         return res.status(400).json('Token Expired');
     }

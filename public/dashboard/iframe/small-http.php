@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+namespace Kabeers;
 
 class SmallHttp
 {
@@ -79,5 +81,4 @@ class SmallHttp
         return $response;
     }
 }
-
 ?>

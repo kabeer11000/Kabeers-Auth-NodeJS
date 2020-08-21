@@ -1,16 +1,18 @@
 <?php
 declare(strict_types=1);
 namespace Kabeers;
-include 'small-http.php';
+require 'small-http.php';
 
 use Error;
+use Exception;
 
 class KAuth
 {
     public $tokens = null;
-    private $client_secret = '';
-    private $client_public = '';
-    private $save_dir = '';
+    private $client_secret = null;
+    private $client_public = null;
+    private $save_dir = null;
+    private $auth_uri = null;
 
     public function getUserInfo($token)
     {
@@ -103,10 +105,33 @@ class KAuth
         }
         return true;
     }
+
+    public function createAuthURI(Array $claims, String $callback, String $state, String $response_type = 'code', String $prompt = 'consent')
+    {
+        $callback = urlencode($callback);
+        $claims = urlencode(join($claims, '|'));
+        if (!$state) {
+            $state = uniqid();
+        }
+        $this->auth_uri = "http://localhost:3000/auth/$this->client_public/$claims/$response_type/$callback/$state/$prompt";
+    }
+
+    public function render(String $height, String $width, String $theme = 'dark')
+    {
+        if (!$height || !$width || !$theme || !$this->auth_uri || $this->auth_uri === null) {
+            return false;
+        }
+        if ($theme === 'dark') {
+            return "<div class='kauth_btn--container'><a href='$this->auth_uri' class='kauth_btn--anchor'><img alt='Login With Kabeers Network' class='kauth_btn--image' src='https://cdn.jsdelivr.net/gh/kabeer11000/kauthsdk-php/dist/dark.svg' style='width:$width;height:$height'></a></div>";
+        }
+        return "<div class='kauth_btn--container'><a href='$this->auth_uri' class='kauth_btn--anchor'><img alt='Login With Kabeers Network' class='kauth_btn--image' src='https://cdn.jsdelivr.net/gh/kabeer11000/kauthsdk-php/dist/light.svg' style='width:$width;height:$height'></a></div>";
+    }
 }
 
 $s = new KAuth();
-$s->init('cb1cb94164a10fa702c09aa0f3e2fd3f8e77a73e', '5f323720194bccb1cb94164a10fa702c09aa0', './');
+$s->init('cascb94164a10fa702c09aa0f3e2fd3f8e77a73e', '5s323720194bccb1cb94164a10fa702c09aa0', './');
+$s->createAuthURI(['p6rouHTvGJJCn9OuUNTZRfuaCnwc6:files', 'p6rouHTvGJJCn9OuUNTZRfuaCnwc6:username'], 'http://localhost/projects/oauth_test/New%20Folder/php_sdk.php', uniqid(), 'code');
+echo $s->render('5rem', '6rem', 'dark');
 if ($s->tokens) {
     foreach ($s->tokens as $k) {
         foreach ($k as $b => $value) {
@@ -118,7 +143,6 @@ if ($s->tokens) {
         }
     }
 }
-
 //echo $s->refreshToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoicmVmcmVzaF90b2tlbiIsImFwcF9uYW1lIjoiRGVtbyBBcHAiLCJhcHBfaWQiOiJwNnJvdUhUdkdKSkNuOU91VU5UWlJmdWFDbndjNiIsInNpZ24iOnsiaXYiOiI0ZmVlM2EyOTEyMWE5MTQzYzA0YjIxODBhMGEyNjI0ZiIsImVuY3J5cHRlZERhdGEiOiI0MzdmODk3MTVlZDYzNzNmY2E1NjNiMGZkYjk3NzU2NGRiOWJlMmVhYTIxOTU3YmMzNzc1ZTg1YWZmMDc5YTJlIn0sImdyYW50X3R5cGVzIjoicDZyb3VIVHZHSkpDbjlPdVVOVFpSZnVhQ253YzY6ZmlsZXMiLCJ1c2VyX2lkIjoiYzQwMDAzNzYxMTQxODRiMzhlMmYwMGU0M2IwNzBhOWZlMjM5NDU3ZCIsImlhdCI6MTU5ODAxMTczNCwiZXhwIjoxNTk4ODc1NzM0fQ.BWxR7dwmKSSq21AisVHMvM17DUez-un5k4aWF-SVhjI');
 
 

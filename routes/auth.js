@@ -130,12 +130,13 @@ router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', functio
                     res.render('api_views/allow_acces_password', {
                         app_name: result.name,
                         grant_types_ui: html,
-                        desc: `${result.name} wants access to this account.`,
+                        desc: `${result.name} wants your to this account.`,
                         btn: 'Allow',
                         callback: json.callback,
                         code: json.auth_code,
                         state: json.state,
                         data: json,
+                        verified: result.verified,
                     });
                 }
             } else {

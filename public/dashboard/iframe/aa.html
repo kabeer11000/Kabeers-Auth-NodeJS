@@ -1,0 +1,65 @@
+<link crossorigin="anonymous"
+      href="https://unpkg.com/bootstrap-material-design@4.1.1/dist/css/bootstrap-material-design.min.css"
+      integrity="sha384-wXznGJNEXNG1NFsbm0ugrLFMQPWswR3lds2VeinahP8N0zJw9VWSopbjv2x7WCvX" rel="stylesheet">
+<unverified_container>
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <style>
+        body {
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+            background-color: #fff
+        }
+
+        .header h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+            line-height: 3rem
+        }
+
+        @media (min-width: 48em) {
+            .container {
+                max-width: 46rem
+            }
+        }
+
+        .container-narrow > hr {
+            margin: 2rem 0
+        }
+
+        .marketing p + h4 {
+            margin-top: 1.5rem
+        }
+
+        \
+    </style>
+
+    <div class="container mt-5 mb-5">
+        <img src="https://www.materialui.co/materialIcons/alert/warning_amber_384x384.png"
+             style="height: 5rem;">
+    </div>
+    <hr/>
+    <div class="container" style="min-height: 150px;">
+        <div class="row">
+            <div class="col-md-12">
+                <p>
+                <p class="text-dark"><span class="h3">This app isn't Verified!</span><br></p>
+                <span class="text-muted"><br>This app hasn't been verified by Kabeers Network yet. Only proceed if you know and trust the developer.</span>
+                <hr class="border-none" style="opacity: 0; border-color: rgb(255, 255, 255);">
+                </p>
+                <div class="row">
+                    <div class="col-6 col-sm-6">
+                        <button class="btn-raised btn text-yellow rounded"
+                                onclick="document.querySelector('unverified_container').remove()" type="button">Proceed
+                        </button>
+                    </div>
+                    <div class="col-6 col-sm-6">
+                        <button class="btn float-right btn-primary rounded" onclick="window.history.back()"
+                                type="button">
+                            Back to Safety
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</unverified_container>

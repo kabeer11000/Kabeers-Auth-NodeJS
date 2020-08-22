@@ -73,7 +73,6 @@ app.use('/NANANA', testRouter);
 */
 
 
-/*
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -89,10 +88,8 @@ app.use(function (err, req, res, next) {
   // render the error page
 
   if(!res.headersSent) {
-    res.status(err.status || 500);
-    res.json(err);
+    res.status(err.status || 500).json(err);
   }
 });
- */
 
 module.exports = app;

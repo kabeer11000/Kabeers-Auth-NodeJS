@@ -46,7 +46,87 @@ const inBoth = (list1, list2) => operation(list1, list2, true);
 let virtual_sessions = [],
     virtual_session_builder = [];
 
-router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', function (req, res, next) {
+function uiLogic(default_account, req, res, json, html, app_id, result) {
+    if (default_account && Object.keys(default_account).length !== 0) {
+        const cookie_allowed_apps = default_account.allowed_apps;
+        if (req.params.prompt === 'chooser') {
+            // Show Account Chooser
+            return res.render("api_views/account_chooser", {
+                code: json.auth_code,
+                app_name: result.name,
+                grants: html,
+                noPrompt: !0
+            });
+        }
+        if (req.params.prompt === 'password') {
+            // Show Password Page
+            res.render("api_views/allow_acces_password", {
+                app_name: result.name,
+                grant_types_ui: html,
+                desc: `${result.name} Already has access to this account.`,
+                btn: "Allow",
+                callback: json.callback,
+                code: json.auth_code,
+                state: json.state,
+                data: json
+            });
+        }
+        if (cookie_allowed_apps.includes(app_id)) {
+            if (req.params.prompt === 'none') {
+                // Auto Redirect
+                return res.render("api_views/auto_redirect.hbs", {
+                    username_: default_account.username,
+                    password_: default_account.password,
+                    code: json.auth_code
+                });
+            }
+            // Show Default Account Page
+            return res.render("api_views/allow_acces_default_account.hbs", {
+                username_: default_account.username,
+                password_: default_account.password,
+                profile_img: default_account.account_image,
+                app_name: result.name,
+                grant_types_ui: html,
+                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                btn: "Allow",
+                callback: json.callback,
+                code: json.auth_code,
+                state: json.state,
+                data: json
+            });
+        } else {
+            // Show Default Account Page
+            return res.render("api_views/allow_acces_default_account.hbs", {
+                username_: default_account.username,
+                password_: default_account.password,
+                profile_img: default_account.account_image,
+                app_name: result.name,
+                grant_types_ui: html,
+                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                btn: "Allow",
+                callback: json.callback,
+                code: json.auth_code,
+                state: json.state,
+                data: json
+            });
+        }
+    } else {
+        // Show Password Page
+        return res.render("api_views/allow_acces_password", {
+            app_name: result.name,
+            grant_types_ui: html,
+            desc: `${result.name} wants your to your account.`,
+            btn: "Allow",
+            callback: json.callback,
+            code: json.auth_code,
+            state: json.state,
+            data: json,
+            verified: result.verified
+        });
+    }
+}
+
+router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', async function (req, res, next) {
     if (!req.params.app_id || !req.params.grant_types || !req.params.res_type || !req.params.callback) {
         return res.status(400).json('Some Params Were Missing, Bad Request');
     }
@@ -89,102 +169,44 @@ router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', functio
                 } catch (e) {
                     console.log(e)
                 }
+                api_ids = api_ids.filter(function (item, pos) {
+                    return api_ids.indexOf(item) === pos;
+                });
                 dbo.collection("clients_api").find({
                     client_public: {
-                        $in: api_ids.filter(function (item, pos) {
-                            return api_ids.indexOf(item) === pos;
+                        $in: api_ids.filter(function (i, n) {
+                            return api_ids.indexOf(i) === n
                         })
                     }
-                }).toArray().then((api_result, err) => {
-                    if (err) return res.status(500).json(err);
-                    if (api_result) {
-
-                    }
-                });
-
-                grant_ui.map((v, i) => {
-                    html += `
-                          <li class="mdc-list-item" tabindex="0">
-                            <span class="mdc-list-item__ripple"></span>
-                            <span class="mdc-list-item__text">
-                              <span class="mdc-list-item__primary-text">${i + 1} - ${v}</span>
-                            </span>
-                          </li>
-                        `;
-                });
-                // Start Virtual Session
-                if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
-                    virtual_session_builder.push(json);
-                }
-                const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
-                if (default_account && Object.keys(default_account).length !== 0) {
-                    const cookie_allowed_apps = default_account.allowed_apps;
-                    if (req.params.prompt === 'chooser') return res.render('api_views/account_chooser', {
-                        code: json.auth_code,
-                        app_name: result.name,
-                        grants: html,
-                        noPrompt: true
-                    });
-                    if (req.params.prompt === 'password') return res.render('api_views/allow_acces_password', {
-                        app_name: result.name,
-                        grant_types_ui: html,
-                        desc: `${result.name} Already has access to this account.`,
-                        btn: 'Allow',
-                        callback: json.callback,
-                        code: json.auth_code,
-                        state: json.state,
-                        data: json
+                })
+                    .toArray((err, api_result) => {
+                        if (err) return res.status(500).json(err);
+                        if (api_result) {
+                            let a = [];
+                            // Create Description
+                            for (let i = 0; i < grant_type.split('|').length; i++) {
+                                let result = api_result.find((value => value.client_public === grant_type.split('|')[i].split(':')[0]));
+                                a.push({
+                                    title: result.name,
+                                    image: result.app_image,
+                                    desc: result.grant_desc[grant_type.split('|')[i]]
+                                });
+                            }
+                            grant_ui.map((v, i) => {
+                                html += `<div class="card permission_container" style="box-shadow:none"> <div class="card-header text-left" data-toggle="collapse" data-target="#${i}" aria-expanded="true" aria-controls="collapseOne" id="headingOne"> <h5 class="mb-0"> <div class="btn k_btn btn-link text-truncate w-100"><img src="${a[i].image}" style="width: 2rem;height: auto;margin-right: 1rem" onerror="this.onerror=null;this.src='https://www.materialui.co/materialIcons/image/broken_image_black_192x192.png'"> <span class="text-muted small">${a[i].title}:</span> ${v.replace(/[^a-zA-Z0-9]/g, " ")}</div> </h5> </div> <div id="${i}" class="collapse" aria-labelledby="headingOne" data-parent="#accordion"> <div class="card-body"> ${a[i].desc} </div> </div> </div><style>.k_btn, .permission_container{text-align: left!important}</style>`;
+                            });
+                            // Start Virtual Session
+                            if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
+                                virtual_session_builder.push(json);
+                            }
+                            const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
+                            return uiLogic(default_account, req, res, json, html, app_id, result);
+                        }
                     });
 
-                    if (cookie_allowed_apps.includes(app_id)) {
-                        if (req.params.prompt === 'none') return res.render('api_views/auto_redirect.hbs', {
-                            username_: default_account.username,
-                            password_: default_account.password,
-                            code: json.auth_code
-                        });
-                        return res.render('api_views/allow_acces_default_account.hbs', {
-                            username_: default_account.username,
-                            password_: default_account.password,
-                            profile_img: default_account.account_image,
-                            app_name: result.name,
-                            grant_types_ui: html,
-                            desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-                            btn: 'Allow',
-                            callback: json.callback,
-                            code: json.auth_code,
-                            state: json.state,
-                            data: json,
-                        });
-                    } else {
-                        return res.render('api_views/allow_acces_default_account.hbs', {
-                            username_: default_account.username,
-                            password_: default_account.password,
-                            profile_img: default_account.account_image,
-                            app_name: result.name,
-                            grant_types_ui: html,
-                            desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-                            btn: 'Allow',
-                            callback: json.callback,
-                            code: json.auth_code,
-                            state: json.state,
-                            data: json,
-                        });
-                    }
-                } else {
-                    return res.render('api_views/allow_acces_password', {
-                        app_name: result.name,
-                        grant_types_ui: html,
-                        desc: `${result.name} wants your to your account.`,
-                        btn: 'Allow',
-                        callback: json.callback,
-                        code: json.auth_code,
-                        state: json.state,
-                        data: json,
-                        verified: result.verified,
-                    });
-                }
+            } else {
+                return res.json('Bad Request');
             }
-            return res.json('Bad Request');
         });
     });
 });

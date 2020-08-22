@@ -4,13 +4,12 @@
 <link rel="shortcut icon" type="image/png" href="ic_launcher.png"/>
 <link href="/stylesheets/bootstrap_matrial_design.css" rel="stylesheet" id="bootstrap-css">
 <style>
-
     .mdc-icon-button {
         display: inline-block;
         position: relative;
         box-sizing: border-box;
-        border: none;
-        outline: none;
+        border: 0;
+        outline: 0;
         background-color: transparent;
         fill: currentColor;
         color: inherit;
@@ -125,47 +124,36 @@
         z-index: 4
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon {
+    .mdc-top-app-bar .mdc-top-app-bar__action-item, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon {
         color: #fff;
         color: var(--mdc-theme-on-primary, #fff)
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item::before,
-    .mdc-top-app-bar .mdc-top-app-bar__action-item::after,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon::before,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon::after {
+    .mdc-top-app-bar .mdc-top-app-bar__action-item::before, .mdc-top-app-bar .mdc-top-app-bar__action-item::after, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon::before, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon::after {
         background-color: #fff;
         background-color: var(--mdc-theme-on-primary, #fff)
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item:hover::before,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:hover::before {
+    .mdc-top-app-bar .mdc-top-app-bar__action-item:hover::before, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:hover::before {
         opacity: .08
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item.mdc-ripple-upgraded--background-focused::before,
-    .mdc-top-app-bar .mdc-top-app-bar__action-item:not(.mdc-ripple-upgraded):focus::before,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon.mdc-ripple-upgraded--background-focused::before,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:not(.mdc-ripple-upgraded):focus::before {
+    .mdc-top-app-bar .mdc-top-app-bar__action-item.mdc-ripple-upgraded--background-focused::before, .mdc-top-app-bar .mdc-top-app-bar__action-item:not(.mdc-ripple-upgraded):focus::before, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon.mdc-ripple-upgraded--background-focused::before, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:not(.mdc-ripple-upgraded):focus::before {
         transition-duration: 75ms;
         opacity: .24
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item:not(.mdc-ripple-upgraded)::after,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:not(.mdc-ripple-upgraded)::after {
+    .mdc-top-app-bar .mdc-top-app-bar__action-item:not(.mdc-ripple-upgraded)::after, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:not(.mdc-ripple-upgraded)::after {
         transition: opacity 150ms linear
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item:not(.mdc-ripple-upgraded):active::after,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:not(.mdc-ripple-upgraded):active::after {
+    .mdc-top-app-bar .mdc-top-app-bar__action-item:not(.mdc-ripple-upgraded):active::after, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon:not(.mdc-ripple-upgraded):active::after {
         transition-duration: 75ms;
         opacity: .24
     }
 
-    .mdc-top-app-bar .mdc-top-app-bar__action-item.mdc-ripple-upgraded,
-    .mdc-top-app-bar .mdc-top-app-bar__navigation-icon.mdc-ripple-upgraded {
-        --mdc-ripple-fg-opacity: 0.24
+    .mdc-top-app-bar .mdc-top-app-bar__action-item.mdc-ripple-upgraded, .mdc-top-app-bar .mdc-top-app-bar__navigation-icon.mdc-ripple-upgraded {
+        --mdc-ripple-fg-opacity: .24
     }
 
     .mdc-top-app-bar__row {
@@ -210,8 +198,7 @@
         z-index: 1
     }
 
-    [dir=rtl] .mdc-top-app-bar__title,
-    .mdc-top-app-bar__title[dir=rtl] {
+    [dir=rtl] .mdc-top-app-bar__title, .mdc-top-app-bar__title[dir=rtl] {
         padding-left: 0;
         padding-right: 20px
     }
@@ -223,8 +210,7 @@
         border-bottom-left-radius: 0
     }
 
-    [dir=rtl] .mdc-top-app-bar--short-collapsed,
-    .mdc-top-app-bar--short-collapsed[dir=rtl] {
+    [dir=rtl] .mdc-top-app-bar--short-collapsed, .mdc-top-app-bar--short-collapsed[dir=rtl] {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
@@ -239,8 +225,7 @@
         transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1)
     }
 
-    [dir=rtl] .mdc-top-app-bar--short,
-    .mdc-top-app-bar--short[dir=rtl] {
+    [dir=rtl] .mdc-top-app-bar--short, .mdc-top-app-bar--short[dir=rtl] {
         right: 0;
         left: auto
     }
@@ -259,7 +244,7 @@
     }
 
     .mdc-top-app-bar--short-collapsed {
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, .12);
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0 rgba(0, 0, 0, 0.14), 0px 1px 10px 0 rgba(0, 0, 0, .12);
         width: 56px;
         transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1)
     }
@@ -281,8 +266,7 @@
         padding-right: 12px
     }
 
-    [dir=rtl] .mdc-top-app-bar--short-collapsed.mdc-top-app-bar--short-has-action-item .mdc-top-app-bar__section--align-end,
-    .mdc-top-app-bar--short-collapsed.mdc-top-app-bar--short-has-action-item .mdc-top-app-bar__section--align-end[dir=rtl] {
+    [dir=rtl] .mdc-top-app-bar--short-collapsed.mdc-top-app-bar--short-has-action-item .mdc-top-app-bar__section--align-end, .mdc-top-app-bar--short-collapsed.mdc-top-app-bar--short-has-action-item .mdc-top-app-bar__section--align-end[dir=rtl] {
         padding-left: 12px;
         padding-right: 0
     }
@@ -300,8 +284,7 @@
         padding-right: 0
     }
 
-    [dir=rtl] .mdc-top-app-bar--dense .mdc-top-app-bar__title,
-    .mdc-top-app-bar--dense .mdc-top-app-bar__title[dir=rtl] {
+    [dir=rtl] .mdc-top-app-bar--dense .mdc-top-app-bar__title, .mdc-top-app-bar--dense .mdc-top-app-bar__title[dir=rtl] {
         padding-left: 0;
         padding-right: 12px
     }
@@ -315,8 +298,7 @@
         padding-bottom: 2px
     }
 
-    .mdc-top-app-bar--prominent .mdc-top-app-bar__action-item,
-    .mdc-top-app-bar--prominent .mdc-top-app-bar__navigation-icon {
+    .mdc-top-app-bar--prominent .mdc-top-app-bar__action-item, .mdc-top-app-bar--prominent .mdc-top-app-bar__navigation-icon {
         align-self: flex-start
     }
 
@@ -334,14 +316,21 @@
         padding-bottom: 9px
     }
 
-    [dir=rtl] .mdc-top-app-bar--dense.mdc-top-app-bar--prominent .mdc-top-app-bar__title,
-    .mdc-top-app-bar--dense.mdc-top-app-bar--prominent .mdc-top-app-bar__title[dir=rtl] {
+    [dir=rtl] .mdc-top-app-bar--dense.mdc-top-app-bar--prominent .mdc-top-app-bar__title, .mdc-top-app-bar--dense.mdc-top-app-bar--prominent .mdc-top-app-bar__title[dir=rtl] {
         padding-left: 0;
         padding-right: 20px
     }
 </style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-
+<script src="https://unpkg.com/popper.js@1.12.6/dist/umd/popper.js"
+        integrity="sha384-fA23ZRQ3G/J53mElWqVJEGJzU0sTs+SvzG8fXVWP+kJQ1lwFAOkcUOysnlKJC33U"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/bootstrap-material-design@4.1.1/dist/js/bootstrap-material-design.js"
+        integrity="sha384-CauSuKpEqAFajSpkdjv3z9t8E7RlpJ1UP0lKM/+NdtSarroVKu069AlsRPKkFBz9"
+        crossorigin="anonymous"></script>
+<script>$(document).ready(function () {
+    $('body').bootstrapMaterialDesign();
+});</script>
 <script>
     const code = '{{code}}';
     if (!code) {
@@ -518,11 +507,14 @@
                         {{#if noPrompt}}
                             <br/>
                             <small class="text-muted">Continue to {{app_name}}<br/>
-                                {{app_name}} will recieve your {{{grants}}}</small>
+                                {{app_name}} will recieve</small>
+                            <div id="accordion" class="mt-3 accordion border-top">
+                                {{{grants}}}
+                            </div>
                         {{/if}}
                     </h1>
                     <div class="alert alert-danger d-none" role="alert"></div>
-                    <hr/>
+                    <br/>
                     <ul class="accounts main list-group1">
                     </ul>
                 </div>

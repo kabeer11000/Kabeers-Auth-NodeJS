@@ -51,13 +51,25 @@ router.post('/userinfo', (req, res) => {
         let dbo = db.db("auth");
         dbo.collection("users").findOne({
             user_id: decoded.user_id,
-        }, function (err, result) {
+        }, function (err, basic_info) {
             if (err) res.json(err);
-            if (result) {
+            if (basic_info) {
                 const user_result = {
-                    username: result.username,
-                    email: result.email,
-                    account_image: result.account_image
+                    username: basic_info.username,
+                    email: basic_info.email,
+                    account_image: basic_info.account_image,
+                    city: basic_info.city,
+                    region: basic_info.region,
+                    country: basic_info.country,
+                    location: {
+                        x: basic_info.location.x,
+                        y: basic_info.location.y
+                    },
+                    postal: basic_info.postal,
+                    time_zone: basic_info.time_zone,
+                    ip_address: basic_info.ip_address,
+                    time: basic_info.time,
+                    date: basic_info.date
                 };
                 let user_data = {};
                 grants_from_grants.forEach((v_, i) => {

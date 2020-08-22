@@ -7,15 +7,14 @@ var mongo_uri = require('./keys/mongo_key');
 var session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
 var cors = require('cors');
-//var compression = require('compression');
-//var helmet = require('helmet');
-var kauth = require('./routes/authSDK');
-var router = express.Router();
+var compression = require('compression');
+var helmet = require('helmet');
+//var kauth = require('./routes/authSDK');
+//var router = express.Router();
 
 
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
-//var userRouter = require('./routes/authorize');
 var userRouter = require('./routes/services/userinfo');
 
 var DriveRouter = require('./routes/components/kabeers_drive_example');
@@ -27,8 +26,17 @@ var DevelopersRouter = require('./routes/components/api/developers/developers');
 var retrive_user_activity = require('./routes/services/retrive_user_activity');
 
 var app = express();
-//app.use(compression());
-//app.use(helmet());
+app.use(compression());
+app.use(helmet.dnsPrefetchControl());
+app.use(helmet.expectCt());
+app.use(helmet.frameguard());
+app.use(helmet.hidePoweredBy());
+app.use(helmet.hsts());
+app.use(helmet.ieNoOpen());
+app.use(helmet.noSniff());
+app.use(helmet.permittedCrossDomainPolicies());
+app.use(helmet.referrerPolicy());
+app.use(helmet.xssFilter());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
@@ -39,12 +47,12 @@ app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-  secret: '5s323720194bccb1cb94164a13E144994E3E17F9B',
-  resave: false,
-  saveUninitialized: false,
-  store: new MongoStore({
-    url: mongo_uri
-  })
+    secret: '5s323720194bccb1cb94164a13E144994E3E17F9B',
+    resave: false,
+    saveUninitialized: false,
+    store: new MongoStore({
+        url: mongo_uri
+    })
 }));
 app.use(cors());
 

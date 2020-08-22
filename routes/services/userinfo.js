@@ -44,7 +44,7 @@ router.post('/userinfo', (req, res) => {
     app_ids_from_grants = app_ids_from_grants.filter(function (item, pos) {
         return app_ids_from_grants.indexOf(item) === pos;
     });
-    MongoClient.connect(mongo_uri, {useNewUrlParser: true, useUnifiedTopology: true}, function (err, db) {
+    MongoClient.connect(mongo_uri, {useNewUrlParser: true, useUnifiedTopology: false}, function (err, db) {
         if (err) {
             res.json('Cannot Connect to DB');
         }

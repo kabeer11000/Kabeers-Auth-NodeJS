@@ -445,7 +445,6 @@ router.get('/token_validation/:token', (req, res) => {
         if (e) res.json(e);
         if (v) res.json({status: 'valid', ...v});
     });
-
 });
 
 module.exports = router;

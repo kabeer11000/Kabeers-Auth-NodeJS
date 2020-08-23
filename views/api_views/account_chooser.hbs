@@ -3,7 +3,99 @@
 <link rel="shortcut icon" type="image/png" href="favicon.png"/>
 <link rel="shortcut icon" type="image/png" href="ic_launcher.png"/>
 <link href="/stylesheets/bootstrap_matrial_design.css" rel="stylesheet" id="bootstrap-css">
-<style>
+
+<header class="mdc-top-app-bar mt-0 fixed-top" style="margin:0!important;padding:0;background-color:transparent">
+    <div class="mdc-top-app-bar__row">
+        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <button onclick="window.history.back()"
+                    class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button" aria-label="Close"><img
+                    src="https://cdn.iconscout.com/icon/free/png-512/back-arrow-1767531-1502435.png"
+                    style="height: 1.5rem;width: auto;opacity: 70%"/></button>
+            <span class="mdc-top-app-bar__title"></span>
+        </section>
+        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
+        </section>
+    </div>
+</header>
+<div id="container mt-5">
+    <div class="container-fluid mt-5 2bootstrap snippet" style="justify-content: center; align-items: center;">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="account-wall_  shadow-none border accountchooser card">
+                    <h1 class="title text-center">
+                        <div class="col-md d-flex justify-content-center my-2">
+                            <div style="width: 2em;">
+                                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                                     style="width: 2em;" viewBox="0 0 1528 1528">
+                                    <defs>
+                                        <linearGradient id="a" x1="0.611" y1="0.882" x2="0.291" y2="0.158"
+                                                        gradientUnits="objectBoundingBox">
+                                            <stop offset="0" stop-color="#4e5aa0"/>
+                                            <stop offset="1" stop-color="#4c5da9"/>
+                                        </linearGradient>
+                                        <linearGradient id="b" x1="0.5" x2="0.5" y2="1"
+                                                        gradientUnits="objectBoundingBox">
+                                            <stop offset="0" stop-color="#6b91c8"/>
+                                            <stop offset="1" stop-color="#618ac3"/>
+                                        </linearGradient>
+                                        <linearGradient id="c" x1="0.5" y1="1" x2="0.5"
+                                                        gradientUnits="objectBoundingBox">
+                                            <stop offset="0" stop-color="#6fc69d"/>
+                                            <stop offset="1" stop-color="#66c296"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <g transform="translate(-20.5 -20.5)">
+                                        <path d="M784.5,1548V21C362.83,21,21,362.83,21,784.5S362.83,1548,784.5,1548Z"
+                                              fill="#d3e1f2" stroke="#fff" stroke-width="1" fill-rule="evenodd"/>
+                                        <path d="M256,1548V21c421.67,0,763.5,341.83,763.5,763.5S677.67,1548,256,1548Z"
+                                              transform="translate(528.5)" fill="#5364ae" stroke="#fff" stroke-width="1"
+                                              fill-rule="evenodd"/>
+                                        <path
+                                                d="M756.391,0l-147,1453.093L.669,795.781Q0,779.634,0,763.468C0,344.17,338,3.818,756.391,0Z"
+                                                transform="translate(1548 1547.968) rotate(180)"
+                                                stroke="#fff"
+                                                stroke-width="1"
+                                                fill-rule="evenodd"
+                                                fill="url(#a)"
+                                        />
+                                        <path d="M534.868,1548V21C312.371,21,132,362.83,132,784.5S312.371,1548,534.868,1548Z"
+                                              transform="translate(249.632)" stroke="#fff" stroke-width="1"
+                                              fill-rule="evenodd" fill="url(#b)"/>
+                                        <path d="M402.868,0V1527C180.371,1527,0,1185.17,0,763.5S180.371,0,402.868,0Z"
+                                              transform="translate(1187.368 1548) rotate(180)" stroke="#fff"
+                                              stroke-width="1" fill-rule="evenodd" fill="url(#c)"/>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                        Choose an account<br/>
+                        {{#if noPrompt}}
+                            <br/>
+                            <small class="text-muted">Continue to {{app_name}}<br/>
+                                {{app_name}} will recieve</small>
+                            <div id="accordion" class="mt-3 accordion border-top">
+                                {{{grants}}}
+                            </div>
+                        {{/if}}
+                    </h1>
+                    <div class="alert alert-danger d-none" role="alert"></div>
+                    <br/>
+                    <ul class="accounts main list-group1">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<BackendContainer onchange="this.forms[0].submit()" class="d-none"></BackendContainer>
+<br/>
+<br/>
+<div class="d-inline-block text-muted small mx-3 fixed-bottom" style="bottom:0">
+    <a href="#" class="mx-1 text-muted">Terms</a>
+    <a href="#" class="mx-1 text-muted">Privacy</a>
+    <a href="#" class="mx-1 text-muted">Help</a>
+</div>
+<style type="text/css">
     .mdc-icon-button {
         display: inline-block;
         position: relative;
@@ -320,250 +412,57 @@
         padding-left: 0;
         padding-right: 20px
     }
-</style>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://unpkg.com/popper.js@1.12.6/dist/umd/popper.js"
-        integrity="sha384-fA23ZRQ3G/J53mElWqVJEGJzU0sTs+SvzG8fXVWP+kJQ1lwFAOkcUOysnlKJC33U"
-        crossorigin="anonymous"></script>
-<script src="https://unpkg.com/bootstrap-material-design@4.1.1/dist/js/bootstrap-material-design.js"
-        integrity="sha384-CauSuKpEqAFajSpkdjv3z9t8E7RlpJ1UP0lKM/+NdtSarroVKu069AlsRPKkFBz9"
-        crossorigin="anonymous"></script>
-<script>$(document).ready(function () {
-    $('body').bootstrapMaterialDesign();
-});</script>
-<script>
-    const code = '{{code}}';
-    if (!code) {
-        window.location.href = './'
-    }
-
-    function login_(u, p) {
-        $.ajax({
-            url: "/auth/allow",
-            method: "POST",
-            timeout: 0,
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            data: {
-                username: u,
-                password: atob(p),
-                auth_code: code
-            },
-            tryCount: 0,
-            retryLimit: 3,
-            success: function (res) {
-                if (res) {
-                    if (res.callback !== undefined) {
-                        window.location.href = res.callback;
-                    } else {
-                        $('.alert').html('Application Already Authenticated');
-                        $('.alert').removeClass('d-none');
-                    }
-                }
-            },
-            error: function (xhr, textStatus, errorThrown) {
-                if (textStatus === 'timeout') {
-                    this.tryCount++;
-                    if (this.tryCount <= this.retryLimit) {
-                        $.ajax(this);
-                        return;
-                    }
-                    return;
-                }
-                if (xhr.status === 500) {
-                    $('.alert').html('A Server Error Occured');
-                    $('.alert').removeClass('d-none');
-                } else {
-                    $('.alert').html('Some Error Occurred try Clearing all accounts and Re-Login.');
-                    $('.alert').removeClass('d-none');
-                }
-            }
-        });
-    }
-
-    window.addEventListener('click', () => {
-        if (document.querySelector('.alert').classList.contains('d-none')) {
-            $('.alert').addClass('d-none');
-        }
-    });
-</script>
-<script>
-    $(document).ready(function () {
-
-        if (localStorage.getItem("accounts") != null) {
-            let data = JSON.parse(localStorage.getItem("accounts"));
-            for (let i = 0; i < data.length; i++) {
-                $(".main").append(`
-
-                <li class="accountFF px-3">
-                    <div>
-                        <input name="username" value="${data[i].username}" class="w-0" />
-                        <input name="password" value="${data[i].password}" class="w-0" />
-                        <button onclick="login_('${data[i].username}', '${data[i].password}')" name="login_user" class="list-group-item px-2">
-                        <div class="img-cp position-absolute mt-0"><div class="image-container"><img class="account-image" style="width:2rem;height:2rem" alt="Account Image" src="${data[i].account_image}" />
-</div></div>
-                            <span class="account-name">${data[i].username}</span>
-                            <span class="account-email text-muted">${data[i].email} </span>
-                        </button>
-                    </div>
-                </li>
-            `);
-            }
-        } else {
-            window.history.back();
-        }
-    });
-</script>
-<style>
 
     * {
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
+        box-sizing: border-box
     }
 
     .w-0 {
         width: 0 !important;
-        display: none;
+        display: none
     }
 
     .snippet {
-        transition-duration: 0.75s;
+        transition-duration: .75s
     }
 
     @media (min-width: 600px) {
         .snippet {
             width: 40%;
-            margin-top: 5%;
+            margin-top: 5%
         }
     }
-</style>
-<header class="mdc-top-app-bar mt-0 fixed-top" style="margin:0!important;padding:0;background-color:transparent">
-    <div class="mdc-top-app-bar__row">
-        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
-            <button onclick="window.history.back()"
-                    class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button" aria-label="Close"><img
-                    src="https://cdn.iconscout.com/icon/free/png-512/back-arrow-1767531-1502435.png"
-                    style="height: 1.5rem;width: auto;opacity: 70%"/></button>
-            <span class="mdc-top-app-bar__title"></span>
-        </section>
-        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
-        </section>
-    </div>
-</header>
-<div id="container mt-5">
-    <div class="container-fluid mt-5 2bootstrap snippet" style="justify-content: center; align-items: center;">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="account-wall_  shadow-none border accountchooser card">
-                    <h1 class="title text-center">
-                        <div class="col-md d-flex justify-content-center my-2">
-                            <div style="width: 2em;">
-                                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                                     style="width: 2em;" viewBox="0 0 1528 1528">
-                                    <defs>
-                                        <linearGradient id="a" x1="0.611" y1="0.882" x2="0.291" y2="0.158"
-                                                        gradientUnits="objectBoundingBox">
-                                            <stop offset="0" stop-color="#4e5aa0"/>
-                                            <stop offset="1" stop-color="#4c5da9"/>
-                                        </linearGradient>
-                                        <linearGradient id="b" x1="0.5" x2="0.5" y2="1"
-                                                        gradientUnits="objectBoundingBox">
-                                            <stop offset="0" stop-color="#6b91c8"/>
-                                            <stop offset="1" stop-color="#618ac3"/>
-                                        </linearGradient>
-                                        <linearGradient id="c" x1="0.5" y1="1" x2="0.5"
-                                                        gradientUnits="objectBoundingBox">
-                                            <stop offset="0" stop-color="#6fc69d"/>
-                                            <stop offset="1" stop-color="#66c296"/>
-                                        </linearGradient>
-                                    </defs>
-                                    <g transform="translate(-20.5 -20.5)">
-                                        <path d="M784.5,1548V21C362.83,21,21,362.83,21,784.5S362.83,1548,784.5,1548Z"
-                                              fill="#d3e1f2" stroke="#fff" stroke-width="1" fill-rule="evenodd"/>
-                                        <path d="M256,1548V21c421.67,0,763.5,341.83,763.5,763.5S677.67,1548,256,1548Z"
-                                              transform="translate(528.5)" fill="#5364ae" stroke="#fff" stroke-width="1"
-                                              fill-rule="evenodd"/>
-                                        <path
-                                                d="M756.391,0l-147,1453.093L.669,795.781Q0,779.634,0,763.468C0,344.17,338,3.818,756.391,0Z"
-                                                transform="translate(1548 1547.968) rotate(180)"
-                                                stroke="#fff"
-                                                stroke-width="1"
-                                                fill-rule="evenodd"
-                                                fill="url(#a)"
-                                        />
-                                        <path d="M534.868,1548V21C312.371,21,132,362.83,132,784.5S312.371,1548,534.868,1548Z"
-                                              transform="translate(249.632)" stroke="#fff" stroke-width="1"
-                                              fill-rule="evenodd" fill="url(#b)"/>
-                                        <path d="M402.868,0V1527C180.371,1527,0,1185.17,0,763.5S180.371,0,402.868,0Z"
-                                              transform="translate(1187.368 1548) rotate(180)" stroke="#fff"
-                                              stroke-width="1" fill-rule="evenodd" fill="url(#c)"/>
-                                    </g>
-                                </svg>
-                            </div>
-                        </div>
-                        Choose an account<br/>
-                        {{#if noPrompt}}
-                            <br/>
-                            <small class="text-muted">Continue to {{app_name}}<br/>
-                                {{app_name}} will recieve</small>
-                            <div id="accordion" class="mt-3 accordion border-top">
-                                {{{grants}}}
-                            </div>
-                        {{/if}}
-                    </h1>
-                    <div class="alert alert-danger d-none" role="alert"></div>
-                    <br/>
-                    <ul class="accounts main list-group1">
-                    </ul>
-                </div>
-            </div>
-        </div>
 
-    </div>
-</div>
-<br/>
-<br/>
-<div class="d-inline-block text-muted small mx-3 fixed-bottom" style="bottom:0">
-    <a href="#" class="mx-1 text-muted">Terms</a>
-    <a href="#" class="mx-1 text-muted">Privacy</a>
-    <a href="#" class="mx-1 text-muted">Help</a>
-</div>
-<style>
     .accountFF:hover {
-        background-color: #fafafa;
+        background-color: #fafafa
     }
 
     .accountFF:active {
-        background-color: #f1f1f1;
-    }
-</style>
-<style type="text/css">
-    .main form {
+        background-color: #f1f1f1
     }
 
     .main form button {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
         padding-top: 0 !important;
-        padding-bottom: 0 !important;
+        padding-bottom: 0 !important
     }
 
     .main {
-        align-items: center;
+        align-items: center
     }
 
     .main form hr {
-        margin: 0;
+        margin: 0
     }
-</style>
-<style type="text/css">
+
     .form-signin {
         max-width: 330px;
         padding: 15px;
         margin: 0 auto;
-        padding-top: 5px;
+        padding-top: 5px
     }
 
     .account-wall {
@@ -576,11 +475,7 @@
         border-style: solid;
         border-width: 1px;
         border-color: rgba(0, 0, 0, 0.1);
-        border-radius: 5px;
-    }
-
-    .shadow-none {
-        /*box-shadow: none !important*/
+        border-radius: 5px
     }
 
     .logo {
@@ -588,25 +483,25 @@
         float: none;
         display: block;
         height: 38px;
-        width: 116px;
+        width: 116px
     }
 
     .title {
         font-size: 20px;
         color: #262626;
         margin: 0 0 15px;
-        font-weight: normal;
+        font-weight: normal
     }
 
     .accountchooser .accounts {
         width: 100%;
         margin: 0;
         list-style: none;
-        padding: 0;
+        padding: 0
     }
 
     .accountchooser .accounts li {
-        height: 76px;
+        height: 76px
     }
 
     .accountchooser .accounts li button {
@@ -614,12 +509,11 @@
         display: block;
         width: 100%;
         height: 100%;
-        outline: none;
+        outline: 0;
         border: 0;
         cursor: pointer;
         text-align: left;
-        background: url(data:image/png;base64,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) right center no-repeat;
-        background-size: 21px 21px;
+        background-size: 21px 21px
     }
 
     .accountchooser .accounts li button div div img {
@@ -628,14 +522,14 @@
         -webkit-border-radius: 50%;
         border-radius: 50%;
         height: 46px;
-        width: 2.5rem;
+        width: 2.5rem
     }
 
     .accountchooser .accounts li button span.account-name {
         font-weight: bold;
         font-size: 16px;
         padding-top: 3px;
-        color: #427fed;
+        color: #427fed
     }
 
     .accountchooser .accounts li button span {
@@ -644,27 +538,27 @@
         padding-right: 20px;
         white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis;
+        text-overflow: ellipsis
     }
 
     .action {
-        padding: 5px;
+        padding: 5px
     }
 
     .action ul {
         width: 100%;
         margin: 0;
         list-style: none;
-        padding: 0;
+        padding: 0
     }
 
     .action ul li:first-child {
-        border-right: 1px solid #d5d5d5;
+        border-right: 1px solid #d5d5d5
     }
 
     .action ul li {
         width: 49%;
-        display: inline-block;
+        display: inline-block
     }
 
     .action ul li a {
@@ -676,23 +570,22 @@
         box-sizing: border-box;
         width: 100%;
         display: inline-block;
-        background: none;
+        background: 0;
         text-align: center;
         padding: 12px 0;
-        outline: none;
+        outline: 0;
         text-decoration: none;
-        border: 0;
+        border: 0
     }
 
     .image-container {
         text-align: center;
         vertical-align: middle;
-        display: table-cell;
+        display: table-cell
     }
 
     .img-cp {
-
-        display: table;
+        display: table
     }
 
     .card {
@@ -712,11 +605,7 @@
         .card {
             box-shadow: none !important;
             border: none !important;
-            background: #FAFAFA;
-        }
-
-        body {
-            /*background: #FFF*/
+            background: #fafafa
         }
 
         #container {
@@ -725,8 +614,89 @@
     }
 
     @media screen and (max-width: 700px) {
-
         .snippet {
-            width: 100% !important;
+            width: 100% !important
         }
-    }</style>
+    }
+</style>
+<script>
+    async function login(username, password) {
+        const accounts = async (res) => {
+            if (null === localStorage.getItem("accounts")) {
+                const a = [{
+                    username: res.user_data.username,
+                    email: res.user_data.email,
+                    password: btoa(res.user_data.password),
+                    account_image: res.user_data.account_image
+                }];
+                localStorage.setItem("accounts", JSON.stringify(a))
+            } else {
+                var data = JSON.parse(localStorage.getItem("accounts")), currentData = {
+                    username: res.user_data.username,
+                    email: res.user_data.email,
+                    password: btoa(res.user_data.password),
+                    account_image: res.user_data.account_image
+                };
+                JSON.stringify(data).includes(JSON.stringify(currentData)) || (data.push({
+                    username: res.user_data.username,
+                    email: res.user_data.email,
+                    password: btoa(res.user_data.password),
+                    account_image: res.user_data.account_image
+                }), localStorage.setItem("accounts", JSON.stringify(data)))
+            }
+        };
+        const ajax = async (a = {}) => {
+            return (await fetch(a.url, {...a})).json()
+        };
+        const getFormData = n => {
+            let e = [];
+            for (let o in n) n.hasOwnProperty(o) && e.push(encodeURIComponent(o) + "=" + encodeURIComponent(n[o]));
+            return e.join("&")
+        };
+        const getToken = async () => {
+            let t = void 0;
+            return await ajax({
+                url: "/auth/token",
+                method: "POST",
+                timeout: 0,
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                body: getFormData({
+                    client_secret: "{{client_secret}}",
+                    client_public: "{{client_public}}",
+                    auth_code: "{{code}}"
+                })
+            }).then(function (e) {
+                t = e
+            }), t
+        };
+        const settings = {
+            url: "/auth/allow",
+            method: "POST",
+            timeout: 0,
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: getFormData({username: username, password: atob(password), auth_code: "{{code}}"})
+        };
+        ajax(settings).then((res) => {
+            if (res) {
+                accounts(res);
+                "code" === '{{response_type}}' && (window.location.href = res.callback);
+                if ("token" === '{{response_type}}') {
+                    const e = new URLSearchParams(res.callback);
+                    getToken().then(t => {
+                        t && (window.location.href = `${res.callback.split(/[?#]/)[0]}?token=${encodeURI(JSON.stringify(t))}&nonce=${e.get("nonce")}&state=${e.get("state")}`)
+                    })
+                }
+            }
+        });
+    }
+
+    (async function () {
+        if (null != localStorage.getItem("accounts")) {
+            let a = JSON.parse(localStorage.getItem("accounts")), html = '';
+            for (let e = a.length - 1; e >= 0; e--) {
+                html += ` <li class="accountFF px-3"><div><input name="username" value="${a[e].username}" class="w-0" /><input name="password" value="${a[e].password}" class="w-0" /><button onclick="login('${a[e].username}','${a[e].password}')" name="login_user" class="list-group-item px-2"><div class="img-cp position-absolute mt-0"><div class="image-container"><img class="account-image" style="width:2rem;height:2rem" alt="Account Image" src="${a[e].account_image}" /></div></div><span class="account-name">${a[e].username}</span><span class="account-email text-muted">${a[e].email} </span></button></div></li>`;
+            }
+            document.querySelector('.main').innerHTML = html;
+        } else window.history.back();
+    })();
+</script>

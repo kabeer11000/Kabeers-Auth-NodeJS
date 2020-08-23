@@ -47,93 +47,72 @@ let virtual_sessions = [],
     virtual_session_builder = [];
 
 function uiLogic(default_account, req, res, json, html, app_id, result) {
+    const response_mode = req.params.response_mode;
+    const data = {
+        username_: default_account.username,
+        password_: default_account.password,
+        profile_img: default_account.account_image,
+        app_name: result.name,
+        grant_types_ui: html,
+        desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+        btn: "Allow",
+        callback: json.callback,
+        code: json.auth_code,
+        state: json.state,
+        data: json,
+        response_mode: response_mode,
+        response_type: json.response_type,
+        client_public: result.app_id,
+        client_secret: result.app_secret
+    };
     if (default_account && Object.keys(default_account).length !== 0) {
         const cookie_allowed_apps = default_account.allowed_apps;
         if (req.params.prompt === 'chooser') {
             // Show Account Chooser
             return res.render("api_views/account_chooser", {
-                code: json.auth_code,
-                app_name: result.name,
-                grants: html,
-                noPrompt: !0
+                ...data
             });
         }
         if (req.params.prompt === 'password') {
             // Show Password Page
             res.render("api_views/allow_acces_password", {
-                app_name: result.name,
-                grant_types_ui: html,
-                desc: `${result.name} Already has access to this account.`,
-                btn: "Allow",
-                callback: json.callback,
-                code: json.auth_code,
-                state: json.state,
-                data: json
+                ...data
             });
         }
         if (cookie_allowed_apps.includes(app_id)) {
             if (req.params.prompt === 'none') {
                 // Auto Redirect
                 return res.render("api_views/auto_redirect.hbs", {
-                    username_: default_account.username,
-                    password_: default_account.password,
-                    code: json.auth_code
+                    ...data
                 });
             }
             // Show Default Account Page
             return res.render("api_views/allow_acces_default_account.hbs", {
-                username_: default_account.username,
-                password_: default_account.password,
-                profile_img: default_account.account_image,
-                app_name: result.name,
-                grant_types_ui: html,
-                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-                btn: "Allow",
-                callback: json.callback,
-                code: json.auth_code,
-                state: json.state,
-                data: json
+                ...data
             });
         } else {
             // Show Default Account Page
             return res.render("api_views/allow_acces_default_account.hbs", {
-                username_: default_account.username,
-                password_: default_account.password,
-                profile_img: default_account.account_image,
-                app_name: result.name,
-                grant_types_ui: html,
-                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-                btn: "Allow",
-                callback: json.callback,
-                code: json.auth_code,
-                state: json.state,
-                data: json
+                ...data
             });
         }
     } else {
         // Show Password Page
         return res.render("api_views/allow_acces_password", {
-            app_name: result.name,
-            grant_types_ui: html,
-            desc: `${result.name} wants your to your account.`,
-            btn: "Allow",
-            callback: json.callback,
-            code: json.auth_code,
-            state: json.state,
-            data: json,
-            verified: result.verified
+            ...data
         });
     }
 }
 
-router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', async function (req, res, next) {
-    if (!req.params.app_id || !req.params.grant_types || !req.params.res_type || !req.params.callback) {
+router.get('/', async function (req, res, next) {
+    req.params = req.query;
+    if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) {
         return res.status(400).json('Some Params Were Missing, Bad Request');
     }
     const
-        app_id = decodeURIComponent(req.params.app_id),
-        grant_type = decodeURIComponent(req.params.grant_types),
-        callback_domain = decodeURIComponent(req.params.callback);
+        app_id = decodeURIComponent(req.params.client_id),
+        grant_type = decodeURIComponent(req.params.scope),
+        callback_domain = decodeURIComponent(req.params.redirect_uri);
 
     MongoClient.connect(mongo_uri, {
         useNewUrlParser: true,
@@ -145,7 +124,7 @@ router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', async f
             app_id: app_id
         }, function (err, result) {
             if (err) return res.status(500).json(err);
-            if (result && req.params.res_type === 'code' && result.callback_domain.includes(callback_domain)) {
+            if (result && ['token', 'code'].includes(req.params.response_type) && result.callback_domain.includes(callback_domain)) {
                 const
                     authCode_id = makeid(13),
                     json = {
@@ -156,7 +135,9 @@ router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', async f
                         expires: '2m',
                         callback: callback_domain,
                         state: req.params.state,
+                        nonce: req.params.nonce,
                         used: false,
+                        response_type: req.params.response_type
                     };
                 let api_ids = [];
                 let grant_ui = [],
@@ -199,13 +180,18 @@ router.get('/:app_id/:grant_types/:res_type/:callback/:state?/:prompt?', async f
                             if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
                                 virtual_session_builder.push(json);
                             }
+                            if (req.params.response_type === 'token') {
+                                if (!req.params.client_secret || req.params.client_secret !== result.app_secret) {
+                                    return res.status(400).json('Bad Request');
+                                }
+                            }
                             const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
                             return uiLogic(default_account, req, res, json, html, app_id, result);
                         }
                     });
 
             } else {
-                return res.json('Bad Request');
+                return res.status(400).json('Bad Request');
             }
         });
     });
@@ -264,15 +250,18 @@ router.post('/allow', function (req, res) {
                         let authObjectIndex = virtual_session_builder.findIndex((_authObject) => _authObject.auth_code === inner_json.auth_code);
                         virtual_session_builder.splice(authObjectIndex, authObjectIndex);
 
+                        const
+                            urlified_state = inner_json.state ? `&state=${inner_json.state}` : "",
+                            urlified_nonce = inner_json.state ? `&nonce=${inner_json.nonce}` : "";
+
                         setDefaultUser(res, result);
                         return res.json({
-                            callback: `${decodeURIComponent(inner_json.callback)}?code=${inner_json.auth_code}&state=${inner_json.state}`,
+                            callback: `${decodeURIComponent(inner_json.callback)}?code=${inner_json.auth_code}${urlified_state}${urlified_nonce}`,
                             user_data: result,
                         });
                     }).catch(e => {
                     console.error(e)
                 })
-
             } else {
                 return res.status(400).json('Bad Request');
             }
@@ -409,4 +398,5 @@ router.post('/refresh', (req, res) => {
         });
     });
 });
+
 module.exports = router;

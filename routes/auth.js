@@ -152,12 +152,12 @@ router.get('/authorize', async function (req, res, next) {
     MongoClient.connect(mongo_uri, {
         useNewUrlParser: true,
         useUnifiedTopology: true
-    }, function (err, db) {
+    }).then(function (db, err) {
         if (err) return res.status(500).json('Cannot Connect to DB');
         let dbo = db.db("auth");
         dbo.collection("clients_app").findOne({
             app_id: app_id
-        }, function (err, result) {
+        }).then(function (result, err) {
             if (err) return res.status(500).json(err);
             if (result && ['token', 'code'].includes(req.params.response_type) && result.callback_domain.includes(callback_domain)) {
                 const
@@ -195,7 +195,8 @@ router.get('/authorize', async function (req, res, next) {
                         })
                     }
                 })
-                    .toArray((err, api_result) => {
+                    .toArray()
+                    .then(async (api_result, err) => {
                         if (err) return res.status(500).json(err);
                         if (api_result) {
                             let a = [];
@@ -243,13 +244,13 @@ router.post('/allow', function (req, res) {
     MongoClient.connect(mongo_uri, {
         useNewUrlParser: true,
         useUnifiedTopology: true
-    }, function (err, db) {
+    }).then(async function (db, err) {
         if (err) return res.status(500).json('Cannot Connect to DB');
         let dbo = db.db("auth");
         dbo.collection("users").findOne({
             username: username,
             password: password
-        }, function (err, result) {
+        }).then(async function (result, err) {
             if (err) return res.status(500).json(err);
             if (result) {
                 let allowed_apps = result.allowed_apps;
@@ -269,7 +270,7 @@ router.post('/allow', function (req, res) {
                 }, {
                     upsert: false
                 })
-                    .then(() => {
+                    .then(async () => {
                         if (err) console.log(err);
 
                         const inner_json = {
@@ -304,7 +305,7 @@ router.post('/allow', function (req, res) {
     });
 });
 
-router.post('/token', function (req, res) {
+router.post('/token', async function (req, res) {
     if (!req.body.client_secret ||
         !req.body.client_public ||
         !req.body.auth_code) {
@@ -337,7 +338,7 @@ router.post('/token', function (req, res) {
     MongoClient.connect(mongo_uri, {
         useNewUrlParser: true,
         useUnifiedTopology: true
-    }, function (err, db) {
+    }).then(async function (db, err) {
         if (err) {
             return res.status(500).json('Cannot Connect to DB');
         }
@@ -345,7 +346,7 @@ router.post('/token', function (req, res) {
         dbo.collection("clients_app").findOne({
             app_id: app_public,
             app_secret: app_secret
-        }, function (err, app) {
+        }).then(async function (app, err) {
             if (err) return res.json(err);
             if (app) {
                 dbo.collection("clients_api").find({
@@ -353,7 +354,7 @@ router.post('/token', function (req, res) {
                         $in: app_ids_from_grants
                     }
                 })
-                    .toArray(function (e, clients_api) {
+                    .toArray(async function (e, clients_api) {
                         if (err) return console.log(err);
                         if (clients_api) {
                             let tokens = [];

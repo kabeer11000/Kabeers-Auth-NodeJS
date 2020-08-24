@@ -2,7 +2,6 @@
 
 namespace Kabeers;
 
-
 use PHPUnit_Framework_TestCase;
 
 class KAuthTest extends PHPUnit_Framework_TestCase

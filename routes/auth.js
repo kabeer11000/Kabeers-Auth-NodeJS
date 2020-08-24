@@ -139,7 +139,7 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
     }
 }
 
-router.get('/', async function (req, res, next) {
+router.get('/authorize', async function (req, res, next) {
     req.params = req.query;
     if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) {
         return res.status(400).json('Some Params Were Missing, Bad Request');

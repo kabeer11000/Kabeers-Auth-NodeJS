@@ -69,7 +69,8 @@ router.post('/userinfo', (req, res) => {
                     time_zone: basic_info.time_zone,
                     ip_address: basic_info.ip_address,
                     time: basic_info.time,
-                    date: basic_info.date
+                    date: basic_info.date,
+                    user_id: basic_info.user_id
                 };
                 let user_data = {};
                 grants_from_grants.forEach((v_, i) => {

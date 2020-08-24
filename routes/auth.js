@@ -47,6 +47,13 @@ let virtual_sessions = [],
     virtual_session_builder = [];
 
 function uiLogic(default_account, req, res, json, html, app_id, result) {
+    const response_mode = req.params.response_mode;
+    let main_json = {
+        response_mode: response_mode,
+        response_type: json.response_type,
+        client_public: result.app_id,
+        client_secret: result.app_secret
+    };
     if (default_account && Object.keys(default_account).length !== 0) {
         const cookie_allowed_apps = default_account.allowed_apps;
         if (req.params.prompt === 'chooser') {
@@ -55,7 +62,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
                 code: json.auth_code,
                 app_name: result.name,
                 grants: html,
-                noPrompt: !0
+                noPrompt: !0,
+                ...main_json
             });
         }
         if (req.params.prompt === 'password') {
@@ -68,7 +76,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
                 callback: json.callback,
                 code: json.auth_code,
                 state: json.state,
-                data: json
+                data: json,
+                ...main_json
             });
         }
         if (cookie_allowed_apps.includes(app_id)) {
@@ -77,7 +86,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
                 return res.render("api_views/auto_redirect.hbs", {
                     username_: default_account.username,
                     password_: default_account.password,
-                    code: json.auth_code
+                    code: json.auth_code,
+                    ...main_json
                 });
             }
             // Show Default Account Page
@@ -92,7 +102,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
                 callback: json.callback,
                 code: json.auth_code,
                 state: json.state,
-                data: json
+                data: json,
+                ...main_json
             });
         } else {
             // Show Default Account Page
@@ -107,7 +118,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
                 callback: json.callback,
                 code: json.auth_code,
                 state: json.state,
-                data: json
+                data: json,
+                ...main_json
             });
         }
     } else {
@@ -121,7 +133,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
             code: json.auth_code,
             state: json.state,
             data: json,
-            verified: result.verified
+            verified: result.verified,
+            ...main_json
         });
     }
 }

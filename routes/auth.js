@@ -47,59 +47,81 @@ let virtual_sessions = [],
     virtual_session_builder = [];
 
 function uiLogic(default_account, req, res, json, html, app_id, result) {
-    const response_mode = req.params.response_mode;
-    const data = {
-        username_: default_account.username,
-        password_: default_account.password,
-        profile_img: default_account.account_image,
-        app_name: result.name,
-        grant_types_ui: html,
-        desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-        btn: "Allow",
-        callback: json.callback,
-        code: json.auth_code,
-        state: json.state,
-        data: json,
-        response_mode: response_mode,
-        response_type: json.response_type,
-        client_public: result.app_id,
-        client_secret: result.app_secret
-    };
     if (default_account && Object.keys(default_account).length !== 0) {
         const cookie_allowed_apps = default_account.allowed_apps;
         if (req.params.prompt === 'chooser') {
             // Show Account Chooser
             return res.render("api_views/account_chooser", {
-                ...data
+                code: json.auth_code,
+                app_name: result.name,
+                grants: html,
+                noPrompt: !0
             });
         }
         if (req.params.prompt === 'password') {
             // Show Password Page
             res.render("api_views/allow_acces_password", {
-                ...data
+                app_name: result.name,
+                grant_types_ui: html,
+                desc: `${result.name} Already has access to this account.`,
+                btn: "Allow",
+                callback: json.callback,
+                code: json.auth_code,
+                state: json.state,
+                data: json
             });
         }
         if (cookie_allowed_apps.includes(app_id)) {
             if (req.params.prompt === 'none') {
                 // Auto Redirect
                 return res.render("api_views/auto_redirect.hbs", {
-                    ...data
+                    username_: default_account.username,
+                    password_: default_account.password,
+                    code: json.auth_code
                 });
             }
             // Show Default Account Page
             return res.render("api_views/allow_acces_default_account.hbs", {
-                ...data
+                username_: default_account.username,
+                password_: default_account.password,
+                profile_img: default_account.account_image,
+                app_name: result.name,
+                grant_types_ui: html,
+                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                btn: "Allow",
+                callback: json.callback,
+                code: json.auth_code,
+                state: json.state,
+                data: json
             });
         } else {
             // Show Default Account Page
             return res.render("api_views/allow_acces_default_account.hbs", {
-                ...data
+                username_: default_account.username,
+                password_: default_account.password,
+                profile_img: default_account.account_image,
+                app_name: result.name,
+                grant_types_ui: html,
+                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
+                btn: "Allow",
+                callback: json.callback,
+                code: json.auth_code,
+                state: json.state,
+                data: json
             });
         }
     } else {
         // Show Password Page
         return res.render("api_views/allow_acces_password", {
-            ...data
+            app_name: result.name,
+            grant_types_ui: html,
+            desc: `${result.name} wants your to your account.`,
+            btn: "Allow",
+            callback: json.callback,
+            code: json.auth_code,
+            state: json.state,
+            data: json,
+            verified: result.verified
         });
     }
 }

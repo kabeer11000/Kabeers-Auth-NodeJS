@@ -52,7 +52,8 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
         response_mode: response_mode,
         response_type: json.response_type,
         client_public: result.app_id,
-        client_secret: result.app_secret
+        client_secret: result.app_secret,
+        app_name_pnone: result.name
     };
     if (default_account && Object.keys(default_account).length !== 0) {
         const cookie_allowed_apps = default_account.allowed_apps;

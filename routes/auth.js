@@ -369,7 +369,7 @@ router.post('/token', async function (req, res) {
                                             grant_types: inBoth(grants, v.grant_types.split('|')).join('|'),
                                             user_id: authObject.user_id,
                                         }, v.client_secret, {
-                                            expiresIn: 60 * 60
+                                            expiresIn: v.token_length || (7.2e+6) // 2 hours
                                         }),
                                         refresh_token: jwt.sign({
                                             type: "refresh_token",

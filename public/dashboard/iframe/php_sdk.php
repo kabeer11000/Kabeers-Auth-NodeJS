@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
 namespace Kabeers;
-require 'small-http.php';
+//require 'small-http.php';
 
 use Error;
 use Exception;
+
+session_start();
 
 class KAuth
 {
@@ -13,11 +15,17 @@ class KAuth
     private $client_public = null;
     private $save_dir = null;
     private $auth_uri = null;
+    private $endPoints = array(
+        'UserInfo' => 'http://kabeers-auth.herokuapp.com/user/userinfo',
+        'AccessToken' => 'http://kabeers-auth.herokuapp.com/auth/token',
+        'RefreshToken' => 'http://kabeers-auth.herokuapp.com/auth/refresh'
+    );
+    private $session_state = false;
 
-    public function getUserInfo($token)
+    public function getUserInfo(String $token)
     {
         if (!$token || !$this->client_secret || !$this->client_public) return 0;
-        return preg_replace("/\s+/", "", SmallHttp::HTTPPost("http://localhost:3000/user/userinfo",
+        return preg_replace("/\s+/", "", SmallHttp::HTTPPost($this->endPoints['UserInfo'],
             array(
                 "client_public" => "$this->client_public",
                 "client_secret" => "$this->client_secret",
@@ -26,47 +34,58 @@ class KAuth
         ));
     }
 
-    public function init($client_public, $client_secret, $save_dir)
+    public function init(String $client_public, String $client_secret, String $save_dir, Bool $session_state = false)
     {
         if (!$client_public || !$client_secret || !$save_dir) return 0;
         $this->client_public = $client_public;
         $this->client_secret = $client_secret;
         $this->save_dir = $save_dir;
         if (isset($_GET['code'])) {
-            $token_response = json_decode($this->getAccessTokens($_GET['code']), true);
-            if ($token_response !== null && gettype($token_response) === 'array') {
-                for ($i = 0;
-                     $i < count($token_response);
-                     $i++) {
-                    foreach ($token_response[$i] as $key => $value) {
-                        $this->tokens = $token_response;
+            if ($session_state === false) {
+                $token_response = json_decode($this->getAccessTokens(htmlspecialchars($_GET['code'])), true);
+                if ($token_response !== null && gettype($token_response) === 'array') {
+                    for ($i = count($token_response) - 1; $i >= 0; $i--) {
+                        foreach ($token_response[$i] as $key => $value) {
+                            $this->tokens = $token_response;
+                        }
                     }
+                } // IF
+            } else {
+                if ($_GET['state'] !== $_SESSION['kauth_state']) {
+                    return 0;
                 }
+                $token_response = json_decode($this->getAccessTokens(htmlspecialchars($_GET['code'])), true);
+                if ($token_response !== null && gettype($token_response) === 'array') {
+                    for ($i = count($token_response) - 1; $i >= 0; $i--) {
+                        foreach ($token_response[$i] as $key => $value) {
+                            $this->tokens = $token_response;
+                        }
+                    }
+                }// IF
             }
         }
         return true;
     }
 
-    public function refreshToken($refresh_token)
+    public function refreshToken(String $refresh_token)
     {
         if (!$this->client_secret || !$this->client_public || !$refresh_token) return 0;
         $jwt_payload = json_decode(base64_decode(urldecode(explode('.', $refresh_token)[1])));
         if ($jwt_payload->iat > $jwt_payload->exp) {
             throw new Error('Refresh Token Expired');
         }
-        return SmallHttp::HTTPPost("http://localhost:3000/auth/refresh",
+        return SmallHttp::HTTPPost($this->endPoints['RefreshToken'],
             array(
                 "client_public" => "$this->client_public",
                 "client_secret" => "$this->client_secret",
                 "refresh_token" => "$refresh_token"
             ));
-
     }
 
-    private function getAccessTokens($code)
+    private function getAccessTokens(String $code)
     {
         if (!$this->client_secret || !$this->client_public || !$code) return 0;
-        return SmallHttp::HTTPPost("http://localhost:3000/auth/token",
+        return SmallHttp::HTTPPost($this->endPoints['AccessToken'],
             array(
                 "client_public" => "$this->client_public",
                 "client_secret" => "$this->client_secret",
@@ -77,31 +96,31 @@ class KAuth
     public function saveToken(String $key, String $value)
     {
         if (!$value || !$key) return 0;
-        $r = false;
+        $return = false;
         $key = md5($key);
         if (isset($this->save_dir) && $this->save_dir !== '' || null) {
             $save_key = fopen("$this->save_dir/$key.kauth_store", "w") or die("Unable to open file!");
             fwrite($save_key, "$value");
             fclose($save_key);
-            $r = true;
+            $return = true;
         }
-        return $r;
+        return $return;
     }
 
     public function getToken(String $key)
     {
         if (!$key) return 0;
-        $r = null;
+        $return = null;
         $key = md5($key);
         if (isset($this->save_dir) && $this->save_dir !== '' || null) {
             $save_contents = null;
             try {
                 $save_contents = file_get_contents("$this->save_dir/$key.kauth_store");
-                $r = true;
+                $return = true;
             } catch (Exception $e) {
-                $r = false;
+                $return = false;
             }
-            return $save_contents !== null || '' ? $save_contents : $r;
+            return $save_contents !== null || '' ? $save_contents : $return;
         }
         return true;
     }
@@ -109,9 +128,12 @@ class KAuth
     public function createAuthURI(Array $claims, String $callback, String $state, String $response_type = 'code', String $prompt = 'consent')
     {
         $callback = urlencode($callback);
-        $claims = urlencode(join($claims, '|'));
+        $claims = urlencode(join(array_unique($claims), '|'));
         if (!$state) {
             $state = uniqid();
+        }
+        if (isset($this->session_state)) {
+            $_SESSION['kauth_state'] = $state;
         }
         $this->auth_uri = "http://localhost:3000/auth/$this->client_public/$claims/$response_type/$callback/$state/$prompt";
     }
@@ -126,18 +148,38 @@ class KAuth
         }
         return "<div class='kauth_btn--container'><a href='$this->auth_uri' class='kauth_btn--anchor'><img alt='Login With Kabeers Network' class='kauth_btn--image' src='https://cdn.jsdelivr.net/gh/kabeer11000/kauthsdk-php/dist/light.svg' style='width:$width;height:$height'></a></div>";
     }
+
+    public function redirect()
+    {
+        if (!$this->auth_uri || $this->auth_uri === null) {
+            return false;
+        }
+        header("Location:$this->auth_uri");
+        return 0;
+    }
 }
 
+//----------------------------------------------------------------------
+
+
 $s = new KAuth();
-$s->init('cascb94164a10fa702c09aa0f3e2fd3f8e77a73e', '5s323720194bccb1cb94164a10fa702c09aa0', './');
-$s->createAuthURI(['p6rouHTvGJJCn9OuUNTZRfuaCnwc6:files', 'p6rouHTvGJJCn9OuUNTZRfuaCnwc6:username'], 'http://localhost/projects/oauth_test/New%20Folder/php_sdk.php', uniqid(), 'code');
-echo $s->render('5rem', '6rem', 'dark');
+$s->init('cascb94164a10fa702c09aa0f3e2fd3f8e77a73e', '5s323720194bccb1cb94164a10fa702c09aa0', './', true);
+$s->createAuthURI(
+    ['p6rouHTvGJJCn9OuUNTZRfuaCnwc6:files', 'AStroWorld_Cn9OuUNTZRfuaCnwc6:username', 'AStroWorld_Cn9OuUNTZRfuaCnwc6:username'],
+    'http://localhost/projects/oauth_test/New%20Folder/php_sdk.php',
+    uniqid(),
+    'code'
+);
+echo $s->render('5rem', 'auto', 'dark');
+//$s->redirect();
 if ($s->tokens) {
     foreach ($s->tokens as $k) {
         foreach ($k as $b => $value) {
-            if (array_search($value, $k) === 'p6rouHTvGJJCn9OuUNTZRfuaCnwc6') {
+            if (array_search($value, $k) === 'AStroWorld_Cn9OuUNTZRfuaCnwc6') {
                 $info = $k[array_search($value, $k)];
                 echo $s->refreshToken($info['refresh_token']);
+                echo $s->getUserInfo($info['access_token']);
+                $s->saveToken('ii', $info['refresh_token']);
                 break;
             }
         }

@@ -8,6 +8,15 @@ const express = require('express'),
     ed_ = require('./encrypt_decrypt'),
     encrypt = ed_.encrypt,
     decrypt = ed_.decrypt;
+Array.prototype.compare = function (testArr) {
+    if (this.length != testArr.length) return false;
+    for (var i = 0; i < testArr.length; i++) {
+        if (this[i].compare) { //To test values in nested arrays
+            if (!this[i].compare(testArr[i])) return false;
+        } else if (this[i] !== testArr[i]) return false;
+    }
+    return true;
+};
 
 function makeid(length) {
     let result = '';
@@ -81,8 +90,9 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
                 ...main_json
             });
         }
-        if (cookie_allowed_apps.includes(app_id)) {
-            if (req.params.prompt === 'none') {
+        if (cookie_allowed_apps.find(app => app.id === app_id)) {
+            // Remove === and Check if json.grant_types are a subset of Object.keys
+            if (req.params.prompt === 'none' && Object.keys(cookie_allowed_apps.find(app => app.id === app_id).perms).join('|') === json.grant_types) {
                 // Auto Redirect
                 return res.render("api_views/auto_redirect.hbs", {
                     username_: default_account.username,
@@ -255,18 +265,27 @@ router.post('/allow', function (req, res) {
             if (err) return res.status(500).json(err);
             if (result) {
                 let allowed_apps = result.allowed_apps;
-                const json = virtual_session_builder.find((authObject) => authObject.auth_code === authCode);
+                const
+                    perms = {},
+                    json = virtual_session_builder.find((authObject) => authObject.auth_code === authCode);
+
                 if (json) {
-                    if (allowed_apps.findIndex(m => m === json.app_id) === -1) {
-                        allowed_apps.push(json.app_id);
-                    }
+                    json.grant_types.split('|').map((v, i) => perms[v] = true);
+                    const currentApp = {
+                        id: `${json.app_id}`,
+                        perms: {
+                            ...perms
+                        }
+                    };
+                    const allowedAppIndex = allowed_apps.findIndex(m => m.id === json.app_id);
+                    allowedAppIndex === -1 ? (allowed_apps.push(currentApp)) : (allowed_apps[allowedAppIndex] = currentApp);
                 }
                 dbo.collection("users").updateOne({
                     username: username,
                     password: password
                 }, {
                     $set: {
-                        allowed_apps: allowed_apps
+                        allowed_apps: [...allowed_apps]
                     }
                 }, {
                     upsert: false
@@ -387,6 +406,7 @@ router.post('/token', async function (req, res) {
                             // End Virtual Session
                             let authObjectIndex = virtual_sessions.findIndex((_authObject) => _authObject.auth_code === authObject.auth_code);
                             virtual_sessions.splice(authObjectIndex, authObjectIndex);
+                            authObjectIndex = undefined;
 
                             return res.json(tokens);
                         }

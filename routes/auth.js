@@ -321,7 +321,7 @@ router.post('/allow', function (req, res) {
             } else {
                 return res.status(400).json('Bad Request');
             }
-        });
+        }).catch();
     });
 });
 

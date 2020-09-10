@@ -369,7 +369,7 @@ router.post('/token', async function (req, res) {
                                             grant_types: inBoth(grants, v.grant_types.split('|')).join('|'),
                                             user_id: authObject.user_id,
                                         }, v.client_secret, {
-                                            expiresIn: v.token_length || (7.2e+6) // 2 hours
+                                            expiresIn: v.token_length || '2h' // 2 hours
                                         }),
                                         refresh_token: jwt.sign({
                                             type: "refresh_token",
@@ -379,7 +379,7 @@ router.post('/token', async function (req, res) {
                                             grant_types: inBoth(grants, v.grant_types.split('|')).join('|'),
                                             user_id: authObject.user_id,
                                         }, v.client_secret, {
-                                            expiresIn: 14400
+                                            expiresIn: '10d'
                                         })
                                     }
                                 });
@@ -429,7 +429,7 @@ router.post('/refresh', (req, res) => {
                 grant_types: verified.grant_types,
                 user_id: verified.user_id
             }, decrypted_sign, {
-                expiresIn: 60 * 60
+                expiresIn: '2h'
             });
             return res.json(access_token);
         });

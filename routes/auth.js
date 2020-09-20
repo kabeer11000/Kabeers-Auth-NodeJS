@@ -9,7 +9,7 @@ const express = require('express'),
     encrypt = ed_.encrypt,
     decrypt = ed_.decrypt;
 Array.prototype.compare = function (testArr) {
-    if (this.length != testArr.length) return false;
+    if (this.length !== testArr.length) return false;
     for (var i = 0; i < testArr.length; i++) {
         if (this[i].compare) { //To test values in nested arrays
             if (!this[i].compare(testArr[i])) return false;
@@ -150,6 +150,47 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
     }
 }
 
+router.post('/implict_grant_unhash_secret', (req, res) => {
+    if (!req.body.hash || !req.body.auth_code) return res.status(400).json('No Hash or code Found');
+    const
+        authCode = req.body.auth_code,
+        secretKeyHash = req.body.secret_key_hash;
+
+    const json = virtual_session_builder.find((authObject) => authObject.auth_code === authCode);
+    if (json['secret_key_hash'] === secretKeyHash) return res.json(json.secret_key);
+    else return res.status(400).json('App Not Allowed Implicit Grant');
+});
+router.post('/chooser_login_verification', (req, res) => {
+    if (!req.body.username || !req.body.password) res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+
+    const
+        username = req.body.username,
+        password = req.body.password;
+
+    MongoClient.connect(mongo_uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    }).then(async function (db, err) {
+        if (err) return res.status(500).json('Cannot Connect to DB');
+        let dbo = db.db("auth");
+        dbo.collection("users").findOne({
+            $or: [
+                {
+                    username: username,
+                    password: password
+                },
+                {
+                    email: username,
+                    password: password
+                }
+            ],
+        }).then(function (result, err) {
+            if (err) return res.status(500).json(err);
+            if (result) return res.json(result);
+            else return res.status(400).json('Nothing Found');
+        }).catch(e => res.status(500).json(e))
+    }).catch(e => res.status(500).json(e))
+});
 router.get('/authorize', async function (req, res, next) {
     req.params = req.query;
     if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) {
@@ -174,6 +215,9 @@ router.get('/authorize', async function (req, res, next) {
                 const
                     authCode_id = makeid(13),
                     json = {
+                        // etag: makeid(10),
+                        secret_key_hash: req.params.response_type === 'token' ? makeid(20) : undefined,
+                        secret_key: req.params.response_type === 'token' ? result.app_secret : undefined,
                         auth_code: authCode_id,
                         app_id: result.app_id,
                         grant_types: grant_type,
@@ -185,6 +229,7 @@ router.get('/authorize', async function (req, res, next) {
                         used: false,
                         response_type: req.params.response_type
                     };
+                console.log(json);
                 let api_ids = [];
                 let grant_ui = [],
                     html = ``;
@@ -235,7 +280,7 @@ router.get('/authorize', async function (req, res, next) {
                             const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
                             return uiLogic(default_account, req, res, json, html, app_id, result);
                         }
-                    });
+                    }).catch(e => res.status(400).json('App Does Not Exists'));
 
             } else {
                 return res.status(400).json('Bad Request');
@@ -299,6 +344,7 @@ router.post('/allow', function (req, res) {
                         };
 
                         // Start Virtual Session
+                        if (!json) return res.status(400).json({message: 'Auth Session Expired'});
                         if (virtual_sessions.findIndex(m => m.auth_code === json.auth_code) === -1) {
                             virtual_sessions.push(inner_json);
                         }

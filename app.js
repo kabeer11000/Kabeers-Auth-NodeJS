@@ -9,6 +9,8 @@ const MongoStore = require('connect-mongo')(session);
 var cors = require('cors');
 var compression = require('compression');
 var helmet = require('helmet');
+var back = require('express-back');
+
 //var kauth = require('./routes/authSDK');
 //var router = express.Router();
 
@@ -16,6 +18,7 @@ var helmet = require('helmet');
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
 var userRouter = require('./routes/services/userinfo');
+const frontEndApi = require("./routes/components/api/frontend/frontend");
 
 var DriveRouter = require('./routes/components/kabeers_drive_example');
 var DevelopersRouter = require('./routes/components/api/developers/developers');
@@ -39,8 +42,8 @@ app.use(helmet.referrerPolicy());
 app.use(helmet.xssFilter());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-//app.set('view engine', 'hbs');
-app.set('view engine', 'ejs');
+app.set('view engine', 'hbs');
+//app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
@@ -55,10 +58,11 @@ app.use(session({
     })
 }));
 app.use(cors());
-
+app.use(back());
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
+app.use('/users/api', frontEndApi);
 
 app.use('/devs/api', DevelopersRouter);
 app.use('/activity', retrive_user_activity);

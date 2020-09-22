@@ -7,7 +7,8 @@ const express = require('express'),
     mongo_uri = require('.././keys/mongo_key'),
     ed_ = require('./encrypt_decrypt'),
     encrypt = ed_.encrypt,
-    decrypt = ed_.decrypt;
+    decrypt = ed_.decrypt,
+    bcrypt = require('bcrypt');
 Array.prototype.compare = function (testArr) {
     if (this.length !== testArr.length) return false;
     for (var i = 0; i < testArr.length; i++) {
@@ -27,6 +28,11 @@ function makeid(length) {
     }
     return result;
 }
+
+const mongoClient = MongoClient.connect(mongo_uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(db => db.db("auth"));
 
 function getAppCookies(req) {
     return req.cookies;
@@ -55,38 +61,29 @@ const inBoth = (list1, list2) => operation(list1, list2, true);
 let virtual_sessions = [],
     virtual_session_builder = [];
 
-function uiLogic(default_account, req, res, json, html, app_id, result) {
+function uiLogic(default_account, req, res, json, html, app_id, result, perms) {
     const response_mode = req.params.response_mode;
     let main_json = {
-        response_mode: response_mode,
-        response_type: json.response_type,
-        client_public: result.app_id,
-        client_secret: result.app_secret,
-        app_name_pnone: result.name
+        appName: result.name,
+        clientPublic: json.app_id,
+        appIcon: result.icon || 'https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_my_library_music_48px-512.png',
+        authCode: json.auth_code,
+        appPerms: Buffer.from(JSON.stringify(perms)).toString('base64'),
     };
+    const file_name = 'api_views/react';
     if (default_account && Object.keys(default_account).length !== 0) {
         const cookie_allowed_apps = default_account.allowed_apps;
         if (req.params.prompt === 'chooser') {
             // Show Account Chooser
-            return res.render("api_views/account_chooser", {
-                code: json.auth_code,
-                app_name: result.name,
-                grants: html,
-                noPrompt: !0,
+            return res.render(file_name, {
+                promptType: 'chooser',
                 ...main_json
             });
         }
         if (req.params.prompt === 'password') {
             // Show Password Page
-            res.render("api_views/allow_acces_password", {
-                app_name: result.name,
-                grant_types_ui: html,
-                desc: `${result.name} Already has access to this account.`,
-                btn: "Allow",
-                callback: json.callback,
-                code: json.auth_code,
-                state: json.state,
-                data: json,
+            res.render(file_name, {
+                promptType: 'password',
                 ...main_json
             });
         }
@@ -94,61 +91,37 @@ function uiLogic(default_account, req, res, json, html, app_id, result) {
             // Remove === and Check if json.grant_types are a subset of Object.keys
             if (req.params.prompt === 'none' && Object.keys(cookie_allowed_apps.find(app => app.id === app_id).perms).join('|') === json.grant_types) {
                 // Auto Redirect
-                return res.render("api_views/auto_redirect.hbs", {
-                    username_: default_account.username,
-                    password_: default_account.password,
-                    code: json.auth_code,
+                return res.render(file_name, {
+                    promptType: 'none',
+                    account: Buffer.from(JSON.stringify(default_account)).toString('base64'),
                     ...main_json
                 });
             }
             // Show Default Account Page
-            return res.render("api_views/allow_acces_default_account.hbs", {
-                username_: default_account.username,
-                password_: default_account.password,
-                profile_img: default_account.account_image,
-                app_name: result.name,
-                grant_types_ui: html,
-                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-                btn: "Allow",
-                callback: json.callback,
-                code: json.auth_code,
-                state: json.state,
-                data: json,
+            return res.render(file_name, {
+                promptType: 'consent',
                 ...main_json
             });
         } else {
-            // Show Default Account Page
-            return res.render("api_views/allow_acces_default_account.hbs", {
-                username_: default_account.username,
-                password_: default_account.password,
-                profile_img: default_account.account_image,
-                app_name: result.name,
-                grant_types_ui: html,
-                desc: `${result.name} wants access to this account. ${result.name} will receive:`,
-                btn: "Allow",
-                callback: json.callback,
-                code: json.auth_code,
-                state: json.state,
-                data: json,
+            return res.render(file_name, {
+                promptType: 'consent',
                 ...main_json
             });
+            // Show Default Account Page
         }
     } else {
         // Show Password Page
-        return res.render("api_views/allow_acces_password", {
-            app_name: result.name,
-            grant_types_ui: html,
-            desc: `${result.name} wants your to your account.`,
-            btn: "Allow",
-            callback: json.callback,
-            code: json.auth_code,
-            state: json.state,
-            data: json,
-            verified: result.verified,
+        return res.render(file_name, {
+            promptType: 'password',
             ...main_json
         });
     }
 }
+
+router.get(['/user/create-account'], function (req, res, next) {
+    const file_name = 'api_views/react';
+    res.render(file_name);
+});
 
 router.post('/implict_grant_unhash_secret', (req, res) => {
     if (!req.body.hash || !req.body.auth_code) return res.status(400).json('No Hash or code Found');
@@ -184,12 +157,65 @@ router.post('/chooser_login_verification', (req, res) => {
                     password: password
                 }
             ],
-        }).then(function (result, err) {
-            if (err) return res.status(500).json(err);
-            if (result) return res.json(result);
-            else return res.status(400).json('Nothing Found');
+        }).then((result) => {
+            if (result) {
+                setDefaultUser(res, result);
+                return res.json(result);
+            } else return res.status(400).json('Nothing Found');
         }).catch(e => res.status(500).json(e))
     }).catch(e => res.status(500).json(e))
+});
+router.post('/user/create-account', (req, res) => {
+    if (!req.body.email || !req.body.username || !req.body.password) res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+
+    const
+        username = req.body.username,
+        password = req.body.password,
+        email = req.body.email,
+        accountImage = req.body.accountImage,
+        name = `${req.body.firstname} ${req.body.lastname}`;
+
+    MongoClient.connect(mongo_uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    }).then(async function (db, err) {
+        if (err) return res.status(500).json('Cannot Connect to DB');
+        let dbo = db.db("auth");
+        const token = makeid(20);
+        dbo.collection("users").find({
+            username: username,
+            email: email
+        }).toArray().then((result) => {
+            if (result.length) return res.status(400).json('User name or Email already Exists');
+            dbo.collection("users").insertOne({
+                username: username,
+                email: email,
+                password: password,
+                name: name,
+                account_image: accountImage || 'https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png',
+                time: Date.now(),
+                date: new Date(),
+                verified: false,
+                token: token
+            }).then(() => {
+                setDefaultUser(res, result);
+                res.json({token: token});
+            }).catch(e => res.status(400).json(e));
+        }).catch(e => res.status(500).json(e))
+    }).catch(e => res.status(500).json(e))
+});
+router.get('/user/verify/:token', (req, res) => {
+    if (!req.params.token) return res.status(400).json('Cannot Verify Token');
+    mongoClient.then(async function (db) {
+        db.collection("users").findOne({
+            token: req.params.token,
+            verified: false
+        }).then(result => result ? db.collection("users").updateOne({
+            token: req.params.token,
+            verified: false
+        }, {$set: {verified: true}}).then(result => res.back()) : res.status(400).json('Already Verified'))
+            .catch(e => res.status(500).json(e))
+    }).catch(e => res.status(500).json(e));
 });
 router.get('/authorize', async function (req, res, next) {
     req.params = req.query;
@@ -216,8 +242,6 @@ router.get('/authorize', async function (req, res, next) {
                     authCode_id = makeid(13),
                     json = {
                         // etag: makeid(10),
-                        secret_key_hash: req.params.response_type === 'token' ? makeid(20) : undefined,
-                        secret_key: req.params.response_type === 'token' ? result.app_secret : undefined,
                         auth_code: authCode_id,
                         app_id: result.app_id,
                         grant_types: grant_type,
@@ -229,7 +253,6 @@ router.get('/authorize', async function (req, res, next) {
                         used: false,
                         response_type: req.params.response_type
                     };
-                console.log(json);
                 let api_ids = [];
                 let grant_ui = [],
                     html = ``;
@@ -246,28 +269,23 @@ router.get('/authorize', async function (req, res, next) {
                 });
                 dbo.collection("clients_api").find({
                     client_public: {
-                        $in: api_ids.filter(function (i, n) {
-                            return api_ids.indexOf(i) === n
-                        })
+                        $in: api_ids.filter((i, n, a) => a.indexOf(i) === n)
                     }
                 })
                     .toArray()
-                    .then(async (api_result, err) => {
-                        if (err) return res.status(500).json(err);
+                    .then(async (api_result) => {
+//                        if (err) return res.status(500).json(err);
                         if (api_result) {
-                            let a = [];
+                            let grantsA = [];
                             // Create Description
                             for (let i = 0; i < grant_type.split('|').length; i++) {
                                 let result = api_result.find((value => value.client_public === grant_type.split('|')[i].split(':')[0]));
-                                a.push({
+                                grantsA.push({
                                     title: result.name,
                                     image: result.app_image,
                                     desc: result.grant_desc[grant_type.split('|')[i]]
                                 });
                             }
-                            grant_ui.map((v, i) => {
-                                html += `<div class="card permission_container" style="box-shadow:none"> <div class="card-header text-left" data-toggle="collapse" data-target="#${i}" aria-expanded="true" aria-controls="collapseOne" id="headingOne"> <h5 class="mb-0"> <div class="btn k_btn btn-link text-truncate w-100"><img src="${a[i].image}" style="width: 2rem;height: auto;margin-right: 1rem" onerror="this.onerror=null;this.src='https://www.materialui.co/materialIcons/image/broken_image_black_192x192.png'"> <span class="text-muted small">${a[i].title}:</span> ${v.replace(/[^a-zA-Z0-9]/g, " ")}</div> </h5> </div> <div id="${i}" class="collapse" aria-labelledby="headingOne" data-parent="#accordion"> <div class="card-body"> ${a[i].desc} </div> </div> </div><style>.k_btn, .permission_container{text-align: left!important}</style>`;
-                            });
                             // Start Virtual Session
                             if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
                                 virtual_session_builder.push(json);
@@ -278,10 +296,9 @@ router.get('/authorize', async function (req, res, next) {
                                 }
                             }
                             const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
-                            return uiLogic(default_account, req, res, json, html, app_id, result);
+                            return uiLogic(default_account, req, res, json, html, app_id, result, grantsA);
                         }
-                    }).catch(e => res.status(400).json('App Does Not Exists'));
-
+                    })
             } else {
                 return res.status(400).json('Bad Request');
             }
@@ -289,9 +306,8 @@ router.get('/authorize', async function (req, res, next) {
     });
 });
 router.post('/allow', function (req, res) {
-    if (!req.body.username || !req.body.password || !virtual_sessions.map((value => value.auth_code === req.body.code))) {
-        res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
-    }
+    if (!req.body.username || !req.body.password || !virtual_sessions.map((value => value.auth_code === req.body.code))) return res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+
     const
         username = req.body.username,
         password = req.body.password,

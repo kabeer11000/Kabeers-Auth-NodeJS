@@ -85,3 +85,4 @@ router.post('/userinfo', (req, res) => {
 });
 
 module.exports = router;
+//"homepage": "/auth/authorize",

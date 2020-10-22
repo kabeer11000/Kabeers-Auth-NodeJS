@@ -11,7 +11,7 @@ const makeid = length => {
   return text;
 };
 /* GET home page. */
-router.get(['/', '/home', '/apps', '/profile', '/create-account'], function (req, res, next) {
+router.get(['/', '/home', '/apps', '/profile', '/create-account', '/continue', '/settings'], function (req, res, next) {
   const file_name = 'api_views/react';
   res.render(file_name);
 });

@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/3.6.3/workbox-sw.js");
 
 importScripts(
-    "/frontend/kauth_frontend/precache-manifest.aab0aadda7aa6b8499744ff760138c35.js"
+  "/frontend/kauth_frontend/precache-manifest.836db7633132421d32e0dbcb53357be4.js"
 );
 
 workbox.clientsClaim();
@@ -28,7 +28,7 @@ self.__precacheManifest = [].concat(self.__precacheManifest || []);
 workbox.precaching.suppressWarnings();
 workbox.precaching.precacheAndRoute(self.__precacheManifest, {});
 
-workbox.routing.registerNavigationRoute("/frontend/kauth_frontend/index.html", {
+workbox.routing.registerNavigationRoute("/index.html", {
 
   blacklist: [/^\/_/, /\/[^/]+\.[^/]+$/],
 });

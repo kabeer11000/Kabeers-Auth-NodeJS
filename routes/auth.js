@@ -37,16 +37,9 @@ const mongoClient = MongoClient.connect(mongo_uri, {
 
 const getAppCookies = (req) => req.cookies;
 
-const setDefaultUser = (res, result) => result ? res.cookie('default_account', JSON.stringify({
-    username: result.username,
-    email: result.email,
-    account_image: result.account_image,
-    password: result.password,
-    user_id: result.user_id,
-    allowed_apps: result.allowed_apps
-}), {
+const setDefaultUser = (res, result) => res.cookie('default_account', JSON.stringify(result), {
     httpOnly: false
-}) : null;
+});
 
 const operation = (list1, list2, isUnion = false) =>
     list1.filter(a => isUnion === list2.some(b => a === b));
@@ -74,7 +67,7 @@ const sendMail = ({email, title, body}) => new Promise(((resolve, reject) => nod
 const virtual_sessions = [],
     virtual_session_builder = [];
 
-const uiLogic = (default_account, req, res, json, html, app_id, result, perms) => {
+const uiLogic = (default_account, req, res, json, app_id, result, perms) => {
     //const response_mode = req.params.response_mode;
     const file_name = 'api_views/react';
     const main_json = {
@@ -132,7 +125,7 @@ router.post('/implict_grant_unhash_secret', (req, res) => {
     else return res.status(400).json('App Not Allowed Implicit Grant');
 });
 //TODO UPDATE
-router.post(['/user/challenge/chooser_login_verification', '/chooser_login_verification'], (req, res) => {
+router.post(['/user/challenge/chooser_login_verification'], (req, res) => {
     if (!req.body.username || !req.body.password || !req.body.deviceId) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
 
     const
@@ -162,7 +155,7 @@ router.post(['/user/challenge/chooser_login_verification', '/chooser_login_verif
             status: 200,
             message: "Verified",
         }));
-    }).catch(e => res.status(500).json(e)))
+    }).catch(e => res.status(500).json("Database Error")))
 });
 router.post('/user/devices/update', (req, res) => {
     if (!req.body.username || !req.body.password || !req.body.deviceId || !req.body.code) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
@@ -224,16 +217,16 @@ router.post("/user/devices/verify/email", (req, res) => {
         }
     }).then((result) => {
         if (!result) return res.status(400).json("User Not Found Bad Request");
-        console.log(code);
-        res.json("done")
-        // sendMail({
-        //     email: result.value.email,
-        //     title: `Device Verification`,
-        //     body: `We have detected a login attempt from a device you don't use. Here is your verification code <br/> <h3><code>${code}</code></h3> <br/> IP: ${req.headers['x-forwarded-for'] || req.connection.remoteAddress}`,
-        // }).then(() => res.json({
-        //     message: "email Sent",
-        //     status: 200
-        // })).catch(e => res.status(500).json(e));
+//        console.log(code);
+//        res.json("done")
+        sendMail({
+            email: result.value.email,
+            title: `Device Verification`,
+            body: `We have detected a login attempt from a device you don't use. Here is your verification code <br/> <h3><code>${code}</code></h3> <br/> IP: ${req.headers['x-forwarded-for'] || req.connection.remoteAddress}`,
+        }).then(() => res.json({
+            message: "email Sent",
+            status: 200
+        })).catch(e => res.status(500).json(e));
     })
         .catch(e => res.status(500).json(e)))
         .catch(e => res.status(500).json(e));
@@ -277,6 +270,14 @@ router.post('/user/create-account', (req, res) => {
         }).catch(e => res.status(500).json(e))
     }).catch(e => res.status(500).json(e))
 });
+router.post("/user/session/state/:method", (req, res) => {
+    console.log(req.body);
+    if (req.params.method === "get") return req.session.app_auth_state ? res.json(req.session.app_auth_state) : res.status(400).json("Nothing Defined");
+    else if (req.params.method === "save" && req.body.id) {
+        req.session.app_auth_state = JSON.parse(req.body.state);
+        return res.send(req.session.app_auth_state);
+    } else return res.status(400).json("Nothing Was Defined");
+});
 router.get('/user/verify/:token', (req, res) => {
     if (!req.params.token) return res.status(400).json('Cannot Verify Token');
     mongoClient.then(async function (db) {
@@ -292,95 +293,57 @@ router.get('/user/verify/:token', (req, res) => {
 });
 router.get('/authorize', async function (req, res, next) {
     req.params = req.query;
-    if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) {
-        return res.status(400).json('Some Params Were Missing, Bad Request');
-    }
+    if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) return res.status(400).json('Some Params Were Missing, Bad Request');
+
     const
         app_id = decodeURIComponent(req.params.client_id),
         grant_type = decodeURIComponent(req.params.scope),
         callback_domain = decodeURIComponent(req.params.redirect_uri);
 
-    MongoClient.connect(mongo_uri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    }).then(function (db, err) {
-        if (err) return res.status(500).json('Cannot Connect to DB');
-        let dbo = db.db("auth");
-        dbo.collection("clients_app").findOne({
-            app_id: app_id
-        }).then(function (result, err) {
-            if (err) return res.status(500).json(err);
-            if (result && ['token', 'code'].includes(req.params.response_type) && result.callback_domain.includes(callback_domain)) {
-                const
-                    authCode_id = makeid(13),
-                    json = {
-                        // etag: makeid(10),
-                        auth_code: authCode_id,
-                        app_id: result.app_id,
-                        grant_types: grant_type,
-                        time: Date.now(),
-                        expires: '2m',
-                        callback: callback_domain,
-                        state: req.params.state,
-                        nonce: req.params.nonce,
-                        used: false,
-                        response_type: req.params.response_type
-                    };
-                let api_ids = [];
-                let grant_ui = [],
-                    html = ``;
-                try {
-                    grant_type.split('|').map((v, i) => {
-                        grant_ui.push(grant_type.split('|')[i].split(':')[1]);
-                        api_ids.push(grant_type.split('|')[i].split(':')[0]);
-                    });
-                } catch (e) {
-                    console.log(e)
-                }
-                api_ids = api_ids.filter(function (item, pos) {
-                    return api_ids.indexOf(item) === pos;
-                });
-                dbo.collection("clients_api").find({
-                    client_public: {
-                        $in: api_ids.filter((i, n, a) => a.indexOf(i) === n)
-                    }
-                })
-                    .toArray()
-                    .then(async (api_result) => {
-//                        if (err) return res.status(500).json(err);
-                        if (api_result) {
-                            let grantsA = [];
-                            // Create Description
-                            for (let i = 0; i < grant_type.split('|').length; i++) {
-                                let result = api_result.find((value => value.client_public === grant_type.split('|')[i].split(':')[0]));
-                                grantsA.push({
-                                    title: result.name,
-                                    image: result.app_image,
-                                    desc: result.grant_desc[grant_type.split('|')[i]]
-                                });
-                            }
-                            // Start Virtual Session
-                            if (virtual_session_builder.findIndex(m => m.auth_code === json.auth_code) === -1) {
-                                virtual_session_builder.push(json);
-                            }
-                            if (req.params.response_type === 'token') {
-                                if (!req.params.client_secret || req.params.client_secret !== result.app_secret) {
-                                    return res.status(400).json('Bad Request');
-                                }
-                            }
-                            const default_account = getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : "";
-                            return uiLogic(default_account, req, res, json, html, app_id, result, grantsA);
-                        }
-                    })
-            } else {
-                return res.status(400).json('Bad Request');
+    mongoClient.then(dbo => dbo.collection("clients_app").findOne({
+        app_id: app_id
+    }).then(result => {
+        if (!result || !['token', 'code'].includes(req.params.response_type) || !result.callback_domain.includes(callback_domain)) return res.status(400).json("Response Type or Callback Domain Not Supported, Or App Not Found");
+        const
+            authCode_id = makeid(13),
+            json = {
+                auth_code: authCode_id,
+                app_id: result.app_id,
+                grant_types: grant_type,
+                time: Date.now(),
+                expires: '2m',
+                callback: callback_domain,
+                state: req.params.state,
+                nonce: req.params.nonce,
+                used: false,
+                response_type: req.params.response_type
+            };
+        dbo.collection("clients_api").find({
+            client_public: {
+                $in: grant_type.split('|').map((v, i) => (grant_type.split('|')[i].split(':')[0])).filter((i, n, a) => a.indexOf(i) === n)
             }
-        });
-    });
+        })
+            .toArray()
+            .then(async (api_result) => {
+                if (!api_result) return new Error('App Not Found');
+                // Start Virtual Session
+                if (!virtual_session_builder.find(m => m.auth_code === json.auth_code)) virtual_session_builder.push(json);
+                if (req.params.response_type === 'token') if (!req.params.client_secret || req.params.client_secret !== result.app_secret) return res.status(400).json('Bad Request');
+                return uiLogic(getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : null, req, res, json, app_id, result, grant_type.split('|').map(grant => {
+                    const result = api_result.find((value => value.client_public === grant.split(':')[0]));
+                    return ({
+                        title: result.name,
+                        image: result.app_image,
+                        desc: result.grant_desc[grant]
+                    });
+                }));
+            });
+    }).catch(err => res.status(500).json(err)))
+        .catch(err => res.status(500).json("Database Error"));
 });
 router.post('/allow', (req, res) => {
-    if (!req.body.username || !req.body.password || !virtual_sessions.map((value => value.auth_code === req.body.code))) return res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
-
+    const vs = virtual_session_builder.find(value => value.auth_code === req.body.auth_code);
+    if (!req.body.username || !req.body.password || !req.body.auth_code || !vs) return res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
     const
         username = req.body.username,
         password = req.body.password,
@@ -392,20 +355,16 @@ router.post('/allow', (req, res) => {
     }).then(async result => {
         if (!result) return new Error("User Not Found");
         const allowed_apps = result.allowed_apps;
-        const
-            perms = {},
-            json = virtual_session_builder.find((authObject) => authObject.auth_code === authCode);
-
-        if (!json) return new Error("Auth Session Expired. Please Refresh");
-        json.grant_types.split('|').map((v, i) => perms[v] = true);
+        const perms = {};
+        vs.grant_types.split('|').map((v, i) => perms[v] = true);
         const currentApp = {
-            id: `${json.app_id}`,
+            id: `${vs.app_id}`,
             perms: {
                 ...perms
             }
         };
-        const allowedAppIndex = allowed_apps.findIndex(m => m.id === json.app_id);
-        allowedAppIndex === -1 ? (allowed_apps.push(currentApp)) : (allowed_apps[allowedAppIndex] = currentApp);
+        const allowedAppIndex = allowed_apps.findIndex(m => m.id === vs.app_id);
+        !allowedAppIndex ? (allowed_apps.push(currentApp)) : (allowed_apps[allowedAppIndex] = currentApp);
 
         dbo.collection("users").updateOne({
             username: username,
@@ -418,25 +377,13 @@ router.post('/allow', (req, res) => {
             upsert: false
         })
             .then(() => {
-                const inner_json = {
-                    ...json,
-                    user_id: result.user_id,
-                };
-
-                // Start Virtual Session
-                if (virtual_sessions.findIndex(m => m.auth_code === json.auth_code) === -1) virtual_sessions.push(inner_json);
-
-                // End Virtual Session Builder So They Dont Hog Memory
-                let authObjectIndex = virtual_session_builder.findIndex((_authObject) => _authObject.auth_code === inner_json.auth_code);
-                virtual_session_builder.splice(authObjectIndex, authObjectIndex);
-
-                setDefaultUser(res, result); // Set Default User
-                return res.json({
-                    callback: `${decodeURIComponent(inner_json.callback)}?code=${inner_json.auth_code}${inner_json.state ? `&state=${inner_json.state}` : ""}${inner_json.state ? `&nonce=${inner_json.nonce}` : ""}`,
-                    user_data: result,
+                virtual_sessions.find((s) => s.auth_code === vs.auth_code) || virtual_sessions.push({
+                    ...vs,
+                    user_id: result.user_id
                 });
-            }).catch(err => res.status(500).json(err));
-        return res.status(400).json('Bad Request');
+                const s = virtual_session_builder.findIndex((s) => s.auth_code === vs.auth_code);
+                return virtual_session_builder.splice(s, s), setDefaultUser(res, result), res.json({callback: `${decodeURIComponent(vs.callback)}?code=${vs.auth_code}${vs.state ? `&state=${vs.state}` : ""}${vs.state ? `&nonce=${vs.nonce}` : ""}`});
+            }).catch((s) => res.status(500).json(s));
     }).catch((err) => res.status(500).json(err)))
         .catch((err) => res.status(500).json('Cannot Connect to DB'));
 });

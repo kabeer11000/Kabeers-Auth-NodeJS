@@ -8,7 +8,8 @@ const express = require('express'),
     ed_ = require('./encrypt_decrypt'),
     encrypt = ed_.encrypt,
     decrypt = ed_.decrypt,
-    bcrypt = require('bcrypt');
+    bcrypt = require('bcrypt'),
+    nodemailer = require('nodemailer');
 Array.prototype.compare = function (testArr) {
     if (this.length !== testArr.length) return false;
     for (var i = 0; i < testArr.length; i++) {
@@ -19,7 +20,7 @@ Array.prototype.compare = function (testArr) {
     return true;
 };
 
-function makeid(length) {
+const makeid = (length) => {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     var charactersLength = characters.length;
@@ -27,101 +28,98 @@ function makeid(length) {
         result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
-}
+};
 
 const mongoClient = MongoClient.connect(mongo_uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(db => db.db("auth"));
 
-function getAppCookies(req) {
-    return req.cookies;
-}
+const getAppCookies = (req) => req.cookies;
 
-function setDefaultUser(res, result) {
-    if (result) {
-        const user_cookie = {
-            username: result.username,
-            email: result.email,
-            account_image: result.account_image,
-            password: result.password,
-            user_id: result.user_id,
-            allowed_apps: result.allowed_apps
-        };
-        res.cookie('default_account', JSON.stringify(user_cookie), {
-            httpOnly: false
-        });
-    }
-}
+const setDefaultUser = (res, result) => result ? res.cookie('default_account', JSON.stringify({
+    username: result.username,
+    email: result.email,
+    account_image: result.account_image,
+    password: result.password,
+    user_id: result.user_id,
+    allowed_apps: result.allowed_apps
+}), {
+    httpOnly: false
+}) : null;
 
 const operation = (list1, list2, isUnion = false) =>
     list1.filter(a => isUnion === list2.some(b => a === b));
 const inBoth = (list1, list2) => operation(list1, list2, true);
-
-let virtual_sessions = [],
+const sendMail = ({email, title, body}) => new Promise(((resolve, reject) => nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: 'kabeersnetwork@gmail.com',
+            pass: 'ALIBADSHAH2021'
+        },
+        // host: "in-v3.mailjet.com",
+        // port: 589,
+        // secure: false,
+        // auth: {
+        //     user: '7289142e43fb4dd83da81996b455ddeb',
+        //     pass: '12a0953938273483e54f3cc6e8f9d1da'
+        // }
+    }).sendMail({
+        from: 'kabeersnetwork@gmail.com',
+        to: `${email}`,
+        subject: `${title}`,
+        text: `${body}`
+    }, (error, info) => error ? reject(error) : resolve(info))
+));
+const virtual_sessions = [],
     virtual_session_builder = [];
 
-function uiLogic(default_account, req, res, json, html, app_id, result, perms) {
-    const response_mode = req.params.response_mode;
-    let main_json = {
+const uiLogic = (default_account, req, res, json, html, app_id, result, perms) => {
+    //const response_mode = req.params.response_mode;
+    const file_name = 'api_views/react';
+    const main_json = {
         appName: result.name,
         clientPublic: json.app_id,
         appIcon: result.icon || 'https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_my_library_music_48px-512.png',
         authCode: json.auth_code,
         appPerms: Buffer.from(JSON.stringify(perms)).toString('base64'),
     };
-    const file_name = 'api_views/react';
     if (default_account && Object.keys(default_account).length !== 0) {
         const cookie_allowed_apps = default_account.allowed_apps;
-        if (req.params.prompt === 'chooser') {
-            // Show Account Chooser
-            return res.render(file_name, {
-                promptType: 'chooser',
-                ...main_json
-            });
-        }
-        if (req.params.prompt === 'password') {
-            // Show Password Page
-            res.render(file_name, {
-                promptType: 'password',
-                ...main_json
-            });
-        }
-        if (cookie_allowed_apps.find(app => app.id === app_id)) {
-            // Remove === and Check if json.grant_types are a subset of Object.keys
-            if (req.params.prompt === 'none' && Object.keys(cookie_allowed_apps.find(app => app.id === app_id).perms).join('|') === json.grant_types) {
-                // Auto Redirect
-                return res.render(file_name, {
-                    promptType: 'none',
-                    account: Buffer.from(JSON.stringify(default_account)).toString('base64'),
-                    ...main_json
-                });
-            }
-            // Show Default Account Page
-            return res.render(file_name, {
-                promptType: 'consent',
-                ...main_json
-            });
-        } else {
-            return res.render(file_name, {
-                promptType: 'consent',
-                ...main_json
-            });
-            // Show Default Account Page
-        }
-    } else {
-        // Show Password Page
-        return res.render(file_name, {
+        if (req.params.prompt === 'chooser') return res.render(file_name, {
+            promptType: 'chooser',
+            ...main_json
+        }); // Show Account Chooser
+
+        if (req.params.prompt === 'password') return res.render(file_name, {
             promptType: 'password',
             ...main_json
-        });
-    }
-}
+        }); // Show Password Page
 
-router.get(['/user/create-account'], function (req, res, next) {
-    const file_name = 'api_views/react';
-    res.render(file_name);
-});
+        if (cookie_allowed_apps.find(app => app.id === app_id)) {
+            // Remove === and Check if json.grant_types are a subset of Object.keys
+            if (req.params.prompt === 'none' && Object.keys(cookie_allowed_apps.find(app => app.id === app_id).perms).join('|') === json.grant_types) return res.render(file_name, {
+                promptType: 'none',
+                account: Buffer.from(JSON.stringify(default_account)).toString('base64'),
+                ...main_json
+            }); // Auto Redirect
+
+            return res.render(file_name, {
+                promptType: 'consent',
+                ...main_json
+            }); // Show Default Account Page
+
+        } else return res.render(file_name, {
+            promptType: 'consent',
+            ...main_json
+        }); // Show Default Account Page
+
+    }
+    return res.render(file_name, {
+        promptType: 'password',
+        ...main_json
+    }); // Show Password Page
+};
 
 router.post('/implict_grant_unhash_secret', (req, res) => {
     if (!req.body.hash || !req.body.auth_code) return res.status(400).json('No Hash or code Found');
@@ -133,37 +131,112 @@ router.post('/implict_grant_unhash_secret', (req, res) => {
     if (json['secret_key_hash'] === secretKeyHash) return res.json(json.secret_key);
     else return res.status(400).json('App Not Allowed Implicit Grant');
 });
-router.post('/chooser_login_verification', (req, res) => {
-    if (!req.body.username || !req.body.password) res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+//TODO UPDATE
+router.post(['/user/challenge/chooser_login_verification', '/chooser_login_verification'], (req, res) => {
+    if (!req.body.username || !req.body.password || !req.body.deviceId) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
 
     const
         username = req.body.username,
-        password = req.body.password;
+        password = req.body.password,
+        deviceId = req.body.deviceId;
 
-    MongoClient.connect(mongo_uri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    }).then(async function (db, err) {
-        if (err) return res.status(500).json('Cannot Connect to DB');
-        let dbo = db.db("auth");
-        dbo.collection("users").findOne({
-            $or: [
-                {
-                    username: username,
-                    password: password
-                },
-                {
-                    email: username,
-                    password: password
-                }
-            ],
-        }).then((result) => {
-            if (result) {
-                setDefaultUser(res, result);
-                return res.json(result);
-            } else return res.status(400).json('Nothing Found');
-        }).catch(e => res.status(500).json(e))
-    }).catch(e => res.status(500).json(e))
+    mongoClient.then((db) => db.collection("users").findOne({
+        $or: [
+            {
+                username: username,
+                password: password
+            },
+            {
+                email: username,
+                password: password
+            }
+        ],
+    }).then((result) => {
+        if (!result) return res.status(400).json('Nothing Found');
+        if (result.two_factor_auth && !result.webauthn_devices.includes(deviceId)) return res.json({
+            status: 69,
+            message: "device verification failed",
+        }); // Two Factor Auth
+        return (setDefaultUser(res, result), res.json({
+            ...result,
+            status: 200,
+            message: "Verified",
+        }));
+    }).catch(e => res.status(500).json(e)))
+});
+router.post('/user/devices/update', (req, res) => {
+    if (!req.body.username || !req.body.password || !req.body.deviceId || !req.body.code) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+    const
+        username = req.body.username,
+        password = req.body.password,
+        deviceId = req.body.deviceId,
+        code = req.body.code;
+
+    mongoClient.then((db) => db.collection("users").findOneAndUpdate({
+        $or: [
+            {
+                username: username,
+                password: password,
+                deviceVerificationCode: parseInt(code)
+            },
+            {
+                email: username,
+                password: password,
+                deviceVerificationCode: parseInt(code)
+            }
+        ],
+    }, {
+        $unset: {
+            deviceVerificationCode: ""
+        },
+        $addToSet: {webauthn_devices: deviceId}
+    }).then((result) => {
+        if (!result.value) return res.status(400).json('Nothing Found');
+        return (setDefaultUser(res, result.value), res.json({
+            ...result.value,
+            message: "Devices Updated",
+            status: 200
+        }));
+    }).catch(e => res.status(500).json(e)))
+});
+router.post("/user/devices/verify/email", (req, res) => {
+    if (!req.body.username || !req.body.password) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+
+    const
+        username = req.body.username,
+        password = req.body.password,
+        code = Math.floor(100000 + Math.random() * 900000);
+
+    mongoClient.then((db) => db.collection("users").findOneAndUpdate({
+        $or: [
+            {
+                username: username,
+                password: password
+            },
+            {
+                email: username,
+                password: password
+            }
+        ],
+    }, {
+        $set: {
+            deviceVerificationCode: code
+        }
+    }).then((result) => {
+        if (!result) return res.status(400).json("User Not Found Bad Request");
+        console.log(code);
+        res.json("done")
+        // sendMail({
+        //     email: result.value.email,
+        //     title: `Device Verification`,
+        //     body: `We have detected a login attempt from a device you don't use. Here is your verification code <br/> <h3><code>${code}</code></h3> <br/> IP: ${req.headers['x-forwarded-for'] || req.connection.remoteAddress}`,
+        // }).then(() => res.json({
+        //     message: "email Sent",
+        //     status: 200
+        // })).catch(e => res.status(500).json(e));
+    })
+        .catch(e => res.status(500).json(e)))
+        .catch(e => res.status(500).json(e));
 });
 router.post('/user/create-account', (req, res) => {
     if (!req.body.email || !req.body.username || !req.body.password) res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
@@ -305,7 +378,7 @@ router.get('/authorize', async function (req, res, next) {
         });
     });
 });
-router.post('/allow', function (req, res) {
+router.post('/allow', (req, res) => {
     if (!req.body.username || !req.body.password || !virtual_sessions.map((value => value.auth_code === req.body.code))) return res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
 
     const
@@ -313,78 +386,59 @@ router.post('/allow', function (req, res) {
         password = req.body.password,
         authCode = req.body.auth_code;
 
-    MongoClient.connect(mongo_uri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    }).then(async function (db, err) {
-        if (err) return res.status(500).json('Cannot Connect to DB');
-        let dbo = db.db("auth");
-        dbo.collection("users").findOne({
+    mongoClient.then(async dbo => dbo.collection("users").findOne({
+        username: username,
+        password: password
+    }).then(async result => {
+        if (!result) return new Error("User Not Found");
+        const allowed_apps = result.allowed_apps;
+        const
+            perms = {},
+            json = virtual_session_builder.find((authObject) => authObject.auth_code === authCode);
+
+        if (!json) return new Error("Auth Session Expired. Please Refresh");
+        json.grant_types.split('|').map((v, i) => perms[v] = true);
+        const currentApp = {
+            id: `${json.app_id}`,
+            perms: {
+                ...perms
+            }
+        };
+        const allowedAppIndex = allowed_apps.findIndex(m => m.id === json.app_id);
+        allowedAppIndex === -1 ? (allowed_apps.push(currentApp)) : (allowed_apps[allowedAppIndex] = currentApp);
+
+        dbo.collection("users").updateOne({
             username: username,
             password: password
-        }).then(async function (result, err) {
-            if (err) return res.status(500).json(err);
-            if (result) {
-                let allowed_apps = result.allowed_apps;
-                const
-                    perms = {},
-                    json = virtual_session_builder.find((authObject) => authObject.auth_code === authCode);
-
-                if (json) {
-                    json.grant_types.split('|').map((v, i) => perms[v] = true);
-                    const currentApp = {
-                        id: `${json.app_id}`,
-                        perms: {
-                            ...perms
-                        }
-                    };
-                    const allowedAppIndex = allowed_apps.findIndex(m => m.id === json.app_id);
-                    allowedAppIndex === -1 ? (allowed_apps.push(currentApp)) : (allowed_apps[allowedAppIndex] = currentApp);
-                }
-                dbo.collection("users").updateOne({
-                    username: username,
-                    password: password
-                }, {
-                    $set: {
-                        allowed_apps: [...allowed_apps]
-                    }
-                }, {
-                    upsert: false
-                })
-                    .then(async () => {
-                        if (err) console.log(err);
-
-                        const inner_json = {
-                            ...json,
-                            user_id: result.user_id,
-                        };
-
-                        // Start Virtual Session
-                        if (!json) return res.status(400).json({message: 'Auth Session Expired'});
-                        if (virtual_sessions.findIndex(m => m.auth_code === json.auth_code) === -1) {
-                            virtual_sessions.push(inner_json);
-                        }
-                        // End Virtual Session Builder So They Dont Hog Memory
-                        let authObjectIndex = virtual_session_builder.findIndex((_authObject) => _authObject.auth_code === inner_json.auth_code);
-                        virtual_session_builder.splice(authObjectIndex, authObjectIndex);
-
-                        const
-                            urlified_state = inner_json.state ? `&state=${inner_json.state}` : "",
-                            urlified_nonce = inner_json.state ? `&nonce=${inner_json.nonce}` : "";
-
-                        setDefaultUser(res, result);
-                        return res.json({
-                            callback: `${decodeURIComponent(inner_json.callback)}?code=${inner_json.auth_code}${urlified_state}${urlified_nonce}`,
-                            user_data: result,
-                        });
-                    }).catch(e => {
-                    console.error(e)
-                })
-            } else {
-                return res.status(400).json('Bad Request');
+        }, {
+            $set: {
+                allowed_apps: [...allowed_apps]
             }
-        }).catch();
-    });
+        }, {
+            upsert: false
+        })
+            .then(() => {
+                const inner_json = {
+                    ...json,
+                    user_id: result.user_id,
+                };
+
+                // Start Virtual Session
+                if (virtual_sessions.findIndex(m => m.auth_code === json.auth_code) === -1) virtual_sessions.push(inner_json);
+
+                // End Virtual Session Builder So They Dont Hog Memory
+                let authObjectIndex = virtual_session_builder.findIndex((_authObject) => _authObject.auth_code === inner_json.auth_code);
+                virtual_session_builder.splice(authObjectIndex, authObjectIndex);
+
+                setDefaultUser(res, result); // Set Default User
+                return res.json({
+                    callback: `${decodeURIComponent(inner_json.callback)}?code=${inner_json.auth_code}${inner_json.state ? `&state=${inner_json.state}` : ""}${inner_json.state ? `&nonce=${inner_json.nonce}` : ""}`,
+                    user_data: result,
+                });
+            }).catch(err => res.status(500).json(err));
+        return res.status(400).json('Bad Request');
+    }).catch((err) => res.status(500).json(err)))
+        .catch((err) => res.status(500).json('Cannot Connect to DB'));
 });
 
 router.post('/token', async function (req, res) {
@@ -490,9 +544,8 @@ router.post('/token', async function (req, res) {
                                 });
                             });
                             // End Virtual Session
-                            let authObjectIndex = virtual_sessions.findIndex((_authObject) => _authObject.auth_code === authObject.auth_code);
+                            const authObjectIndex = virtual_sessions.findIndex((_authObject) => _authObject.auth_code === authObject.auth_code);
                             virtual_sessions.splice(authObjectIndex, authObjectIndex);
-                            authObjectIndex = undefined;
 
                             return res.json(tokens);
                         }

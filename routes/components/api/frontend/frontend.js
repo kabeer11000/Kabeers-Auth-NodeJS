@@ -71,13 +71,10 @@ router.get('/api/user/apps', (req, res) => {
         }).catch(e => res.status(500).json(e))
 });
 
-router.get('/app/:appid/info', (req, res) => {
-    mongoClient.then(db => {
-        db.collection("clients_app").findOne({app_id: req.params.appid})
-            .then(app => ({_id, app_secret, ...object} = app, res.json(object)))
-            .catch(e => res.json(e))
-    }).catch(e => res.json(e))
-});
+router.get('/app/:appid/info', (req, res) => mongoClient.then(db => db.collection("clients_app").findOne({app_id: req.params.appid})
+    .then(app => ({_id, app_secret, ...object} = app, res.json(object)))
+    .catch(e => res.json(e))).catch(e => res.json(e)));
+
 router.post('/generate_apps_perms', (req, res) => {
     if (!req.headers.default_account) return res.status(400).json('Username Or Password Missing');
     let default_account = JSON.parse(req.headers.default_account);

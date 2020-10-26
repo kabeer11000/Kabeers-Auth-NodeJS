@@ -348,18 +348,6 @@ router.get('/user/verify/:token', (req, res) => {
             .catch(e => res.status(500).json(e))
     }).catch(e => res.status(500).json(e));
 });
-router.get("/ss__", (req, res) => {
-    mongoClient.then(db => {
-        db.collection("user_loggedin_sessions").createIndex({"createdAt": 1}, {expireAfterSeconds: 2.592e+6})
-        //db.collection("user_loggedin_sessions").createIndex({"lastModifiedDate": 1}, {expireAfterSeconds: 10});
-        // db.collection("user_loggedin_sessions").insertOne({
-        //     "createdAt": new Date(),
-        //     "text": "Test Notification",
-        //     "user_id": 1234
-        // })
-        //     .then(() => res.json("THEN"))
-    })
-})
 router.get('/authorize', async function (req, res, next) {
     req.params = req.query;
     if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) return res.status(400).json('Some Params Were Missing, Bad Request');
@@ -452,7 +440,7 @@ router.post('/allow', (req, res) => {
                     user_id: result.user_id
                 });
                 const s = virtual_session_builder.findIndex((s) => s.auth_code === vs.auth_code);
-                return virtual_session_builder.splice(s, s), setDefaultUser(res, result), res.json({callback: `${decodeURIComponent(vs.callback)}?code=${vs.auth_code}${vs.state ? `&state=${vs.state}` : ""}${vs.state ? `&nonce=${vs.nonce}` : ""}`});
+                return virtual_session_builder.splice(s, s), res.json({callback: `${decodeURIComponent(vs.callback)}?code=${vs.auth_code}${vs.state ? `&state=${vs.state}` : ""}${vs.state ? `&nonce=${vs.nonce}` : ""}`});
             }).catch((s) => res.status(500).json(s));
     }).catch((err) => res.status(500).json(err)))
         .catch((err) => res.status(500).json('Cannot Connect to DB'));

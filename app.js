@@ -10,7 +10,6 @@ var cors = require('cors');
 var compression = require('compression');
 var helmet = require('helmet');
 var back = require('express-back');
-
 //var kauth = require('./routes/authSDK');
 //var router = express.Router();
 

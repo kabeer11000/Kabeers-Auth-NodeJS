@@ -9,7 +9,8 @@ const express = require('express'),
     encrypt = ed_.encrypt,
     decrypt = ed_.decrypt,
     bcrypt = require('bcrypt'),
-    nodemailer = require('nodemailer');
+    nodemailer = require('nodemailer'),
+    axios = require("axios");
 Array.prototype.compare = function (testArr) {
     if (this.length !== testArr.length) return false;
     for (var i = 0; i < testArr.length; i++) {
@@ -45,18 +46,19 @@ const operation = (list1, list2, isUnion = false) =>
     list1.filter(a => isUnion === list2.some(b => a === b));
 const inBoth = (list1, list2) => operation(list1, list2, true);
 const sendMail = ({email, title, body}) => new Promise(((resolve, reject) => nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: 'kabeersnetwork@gmail.com',
-            pass: 'ALIBADSHAH2021'
-        },
-        // host: "in-v3.mailjet.com",
-        // port: 589,
+        // service: 'gmail',
         // secure: false,
         // auth: {
-        //     user: '7289142e43fb4dd83da81996b455ddeb',
-        //     pass: '12a0953938273483e54f3cc6e8f9d1da'
-        // }
+        //     user: 'kabeersnetwork@gmail.com',
+        //     pass: 'ALIBADSHAH2021'
+        // },
+        host: "in-v3.mailjet.com",
+        port: 589,
+        secure: false,
+        auth: {
+            user: '7289142e43fb4dd83da81996b455ddeb',
+            pass: '12a0953938273483e54f3cc6e8f9d1da'
+        }
     }).sendMail({
         from: 'kabeersnetwork@gmail.com',
         to: `${email}`,
@@ -77,12 +79,17 @@ const uiLogic = (default_account, req, res, json, app_id, result, perms) => {
         authCode: json.auth_code,
         appPerms: Buffer.from(JSON.stringify(perms)).toString('base64'),
     };
-    if (default_account && Object.keys(default_account).length !== 0) {
+    if (default_account && Object.keys(default_account).length) {
         const cookie_allowed_apps = default_account.allowed_apps;
         if (req.params.prompt === 'chooser') return res.render(file_name, {
             promptType: 'chooser',
             ...main_json
         }); // Show Account Chooser
+
+        if (req.params.prompt === "embed") return res.render(file_name, {
+            promptType: "embed",
+            ...main_json
+        }); // Render Embedded Page
 
         if (req.params.prompt === 'password') return res.render(file_name, {
             promptType: 'password',
@@ -125,15 +132,47 @@ router.post('/implict_grant_unhash_secret', (req, res) => {
     else return res.status(400).json('App Not Allowed Implicit Grant');
 });
 //TODO UPDATE
-router.post(['/user/challenge/chooser_login_verification'], (req, res) => {
-    if (!req.body.username || !req.body.password || !req.body.deviceId) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
-
+router.post('/user/challenge/chooser_login_verification/:chooser?', (req, res) => {
+    if (req.params.chooser && (!req.body.user_id || !req.body.session_token || !req.body.deviceId)) return res.status(400).json("Some Params Were Missing Or AuthCode was invalid, Bad Request");
+    if (!(req.params.chooser || (req.body.username && req.body.password && req.body.deviceId))) return res.status(400).json("Some Params Were Missing Or AuthCode was invalid, Bad Request");
+    // if (!(req.params.chooser && !(!req.body.user_id || !req.body.session_token || !req.body.deviceId))) return res.status(400).json("Some Params Were Missing Or AuthCode was invalid, Bad Request ___")
+    // else if (!req.params.chooser && !(!req.body.username || !req.body.password || !req.body.deviceId)) return res.status(400).json("Some Params Were Missing Or AuthCode was invalid, Bad Request");
+    const token_new = makeid(40);
     const
         username = req.body.username,
         password = req.body.password,
         deviceId = req.body.deviceId;
 
-    mongoClient.then((db) => db.collection("users").findOne({
+    return mongoClient.then((db) => req.params.chooser ? db.collection("user_loggedin_sessions").findOne({
+        user_id: req.body.user_id,
+        session_token: req.body.session_token,
+        deviceId: deviceId,
+    }).then((f) => !f ? res.status(400).json('Session Not Found') : db.collection("users").findOne({
+        user_id: req.body.user_id
+    }).then((result) => {
+        if (!result) return res.status(400).json('Nothing Found');
+        if (result.two_factor_auth && !result.webauthn_devices.includes(deviceId)) return res.json({
+            status: 69,
+            message: "device verification failed",
+        }); // Two Factor Auth
+        return db.collection("user_loggedin_sessions").updateOne({
+            deviceId: deviceId,
+            user_id: result.user_id
+        }, {
+            $set: {
+                createdAt: new Date(),
+                session_token: token_new,
+                user_id: result.user_id,
+                deviceId: deviceId
+            }
+        }, {upsert: true})
+            .then(() => (setDefaultUser(res, result), res.json({
+                ...result,
+                session_token: token_new,
+                status: 200,
+                message: "Verified",
+            })))
+    }).catch(e => res.status(500).json("Database Error"))) : db.collection("users").findOne({
         $or: [
             {
                 username: username,
@@ -150,12 +189,24 @@ router.post(['/user/challenge/chooser_login_verification'], (req, res) => {
             status: 69,
             message: "device verification failed",
         }); // Two Factor Auth
-        return (setDefaultUser(res, result), res.json({
-            ...result,
-            status: 200,
-            message: "Verified",
-        }));
-    }).catch(e => res.status(500).json("Database Error")))
+        return db.collection("user_loggedin_sessions").updateOne({
+            deviceId: deviceId,
+            user_id: result.user_id
+        }, {
+            $set: {
+                createdAt: new Date(),
+                session_token: token_new,
+                user_id: result.user_id,
+                deviceId: deviceId
+            }
+        }, {upsert: true})
+            .then(() => (setDefaultUser(res, result), res.json({
+                ...result,
+                session_token: token_new,
+                status: 200,
+                message: "Verified",
+            })))
+    }).catch(e => res.status(500).json("Database Error")));
 });
 router.post('/user/devices/update', (req, res) => {
     if (!req.body.username || !req.body.password || !req.body.deviceId || !req.body.code) res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
@@ -217,8 +268,6 @@ router.post("/user/devices/verify/email", (req, res) => {
         }
     }).then((result) => {
         if (!result) return res.status(400).json("User Not Found Bad Request");
-//        console.log(code);
-//        res.json("done")
         sendMail({
             email: result.value.email,
             title: `Device Verification`,
@@ -232,46 +281,54 @@ router.post("/user/devices/verify/email", (req, res) => {
         .catch(e => res.status(500).json(e));
 });
 router.post('/user/create-account', (req, res) => {
-    if (!req.body.email || !req.body.username || !req.body.password) res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
-
-    const
-        username = req.body.username,
-        password = req.body.password,
-        email = req.body.email,
-        accountImage = req.body.accountImage,
-        name = `${req.body.firstname} ${req.body.lastname}`;
+    if (!req.body.email || !req.body.username || !req.body.password) return res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+    const token = makeid(40);
 
     MongoClient.connect(mongo_uri, {
         useNewUrlParser: true,
         useUnifiedTopology: true
-    }).then(async function (db, err) {
-        if (err) return res.status(500).json('Cannot Connect to DB');
+    }).then(async (db) => {
+//        if (err) return res.status(500).json('Cannot Connect to DB');
         let dbo = db.db("auth");
-        const token = makeid(20);
         dbo.collection("users").find({
-            username: username,
-            email: email
+            username: req.body.username,
+            email: req.body.email
         }).toArray().then((result) => {
             if (result.length) return res.status(400).json('User name or Email already Exists');
             dbo.collection("users").insertOne({
-                username: username,
-                email: email,
-                password: password,
-                name: name,
-                account_image: accountImage || 'https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png',
+                username: req.body.username,
+                name: `${req.body.firstname} ${req.body.lastname}`,
+                email: req.body.email,
+                password: req.body.password,
+                account_image: req.body.accountImage || "https://avatars2.githubusercontent.com/u/52799968?s=40&v=4",
+                user_id: makeid(40),
+                allowed_apps: [],
+                city: req.body.city,
+                two_factor_auth: true,
+                webauthn_devices: [req.body.deviceId],
+                region: req.body.region,
+                country: req.body.country_code,
+                currency: req.body.currency_code,
+                location: {
+                    x: req.body.latitude,
+                    y: req.body.longitude
+                },
+                postal: req.body.postal_code,
+                time_zone: req.body.timezone_name,
+                ip_address: req.body.ip,
                 time: Date.now(),
                 date: new Date(),
                 verified: false,
                 token: token
-            }).then(() => {
-                setDefaultUser(res, result);
-                res.json({token: token});
-            }).catch(e => res.status(400).json(e));
+            })
+                .then(() => {
+                    setDefaultUser(res, result);
+                    res.json({token: token});
+                }).catch(e => res.status(400).json(e));
         }).catch(e => res.status(500).json(e))
     }).catch(e => res.status(500).json(e))
 });
 router.post("/user/session/state/:method", (req, res) => {
-    console.log(req.body);
     if (req.params.method === "get") return req.session.app_auth_state ? res.json(req.session.app_auth_state) : res.status(400).json("Nothing Defined");
     else if (req.params.method === "save" && req.body.id) {
         req.session.app_auth_state = JSON.parse(req.body.state);
@@ -291,6 +348,18 @@ router.get('/user/verify/:token', (req, res) => {
             .catch(e => res.status(500).json(e))
     }).catch(e => res.status(500).json(e));
 });
+router.get("/ss__", (req, res) => {
+    mongoClient.then(db => {
+        db.collection("user_loggedin_sessions").createIndex({"createdAt": 1}, {expireAfterSeconds: 2.592e+6})
+        //db.collection("user_loggedin_sessions").createIndex({"lastModifiedDate": 1}, {expireAfterSeconds: 10});
+        // db.collection("user_loggedin_sessions").insertOne({
+        //     "createdAt": new Date(),
+        //     "text": "Test Notification",
+        //     "user_id": 1234
+        // })
+        //     .then(() => res.json("THEN"))
+    })
+})
 router.get('/authorize', async function (req, res, next) {
     req.params = req.query;
     if (!req.params.client_id || !req.params.scope || !req.params.response_type || !req.params.redirect_uri) return res.status(400).json('Some Params Were Missing, Bad Request');
@@ -329,6 +398,7 @@ router.get('/authorize', async function (req, res, next) {
                 // Start Virtual Session
                 if (!virtual_session_builder.find(m => m.auth_code === json.auth_code)) virtual_session_builder.push(json);
                 if (req.params.response_type === 'token') if (!req.params.client_secret || req.params.client_secret !== result.app_secret) return res.status(400).json('Bad Request');
+                // req.removeHeader('X-Frame-Options');
                 return uiLogic(getAppCookies(req, res)['default_account'] != null || undefined ? JSON.parse(decodeURIComponent(getAppCookies(req, res)['default_account'])) : null, req, res, json, app_id, result, grant_type.split('|').map(grant => {
                     const result = api_result.find((value => value.client_public === grant.split(':')[0]));
                     return ({
@@ -343,7 +413,7 @@ router.get('/authorize', async function (req, res, next) {
 });
 router.post('/allow', (req, res) => {
     const vs = virtual_session_builder.find(value => value.auth_code === req.body.auth_code);
-    if (!req.body.username || !req.body.password || !req.body.auth_code || !vs) return res.json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
+    if (!req.body.username || !req.body.password || !req.body.auth_code || !vs) return res.status(400).json('Some Params Were Missing Or AuthCode was invalid, Bad Request');
     const
         username = req.body.username,
         password = req.body.password,
@@ -408,15 +478,15 @@ router.post('/token', async function (req, res) {
         app_secret = req.body.client_secret,
         grants = authObject.grant_types.split('|');
 
-    let app_ids_from_grants = [],
-        grants_from_grants = [];
-    grants.map((value, index) => {
-        app_ids_from_grants.push(value.split(':')[0]);
-        grants_from_grants.push(value.split(':')[0] + ':' + value.split(':')[1]);
-    });
-    app_ids_from_grants = app_ids_from_grants.filter(function (item, pos) {
-        return app_ids_from_grants.indexOf(item) === pos;
-    });
+    const app_ids_from_grants = grants.map((value, index) => value.split(':')[0]).filter((item, pos, arr) => arr.indexOf(item) === pos);
+    //    grants_from_grants = [];
+    // grants.map((value, index) => {
+    //     app_ids_from_grants.push(value.split(':')[0]);
+    //     //grants_from_grants.push(value.split(':')[0] + ':' + value.split(':')[1]);
+    // });
+    // app_ids_from_grants = app_ids_from_grants.filter(function (item, pos) {
+    //     return app_ids_from_grants.indexOf(item) === pos;
+    // });
 
     MongoClient.connect(mongo_uri, {
         useNewUrlParser: true,

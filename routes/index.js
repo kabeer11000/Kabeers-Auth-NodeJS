@@ -16,7 +16,7 @@ router.get(['/', '/home', '/apps', '/profile', '/create-account', '/continue', '
   res.render(file_name);
 });
 router.get('/app/callback', (req, res) => {
-  res.back();
+  res.redirect("/");
 });
 router.get('/app/start_oauthFlow', (req, res) => {
   res.redirect(`/auth/authorize?client_id=SS5s687df676k98d96ds9DWxsS8f0d9m791354&scope=AStroWorld_Cn9OuUNTZRfuaCnwc6:username&response_type=code&redirect_uri=${encodeURIComponent(req.protocol + '://' + req.get('host') + '/app/callback')}&state=${makeid(10)}&nonce=${makeid(10)}&prompt=${req.query.prompt || 'chooser'}`);

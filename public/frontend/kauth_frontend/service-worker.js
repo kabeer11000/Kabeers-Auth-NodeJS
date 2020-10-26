@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/3.6.3/workbox-sw.js");
 
 importScripts(
-  "/frontend/kauth_frontend/precache-manifest.fc40cbeb2ab03e6144d3e96ca5f5d7e7.js"
+  "/frontend/kauth_frontend/precache-manifest.3aee768f8b7fca35dddf462dd49fe999.js"
 );
 
 workbox.clientsClaim();
